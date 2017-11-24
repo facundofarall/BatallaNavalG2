@@ -1,0 +1,137 @@
+
+*************************
+*	CONST		*
+*************************
+
+FILA	EQU	6
+COL	EQU	6
+ARRAY_L	EQU	FILA*COL
+NORM	EQU	10
+
+*************************
+*	CODE		*
+*************************
+					
+*====================================================================================
+* Subrutina "FETCHPOS"
+*
+* Descripción: 	La subrutina busca en un array de tres dimensiones una 
+*               determinada posición, y devuelve el byte que se encuentra
+*		en esa posición por stack. Subrutina limitada a longitud
+*		de elementos del array de un byte.
+*
+* Parámetros de entrada:
+*		- FILA del array (En HEX, de $0A (fil.0) en adelante)
+*		- COLUMNA del array (en HEX)
+*		- Dirección de comienzo del arreglo (2 bytes)
+*		- Número de arreglo (de 0 en adelante) (número de jugador)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado.
+*	Se destruirá el dato del índice al arreglo.
+*		
+* Parámetros de salida:
+*		- Byte encontrado en esa posición (se devuelve por stack)
+*
+*
+* Consideraciones:
+*		- Antes de recuperar el byte en stack se debe normalizar el mismo
+*		  en 4 posiciones (4 bytes)
+*
+*====================================================================================
+
+fetchpos	EQU		*
+
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		8,x		;cargo numero de jugador
+		ldab		#ARRAY_L	;cargo longitud del arreglo (MAX 255 bytes)
+		mul				;obtengo offset de jugador
+		addd		9,x		;sumo offset de jugador a top of array
+		stad		9,x		;obtengo direccion al arreglo del jugador
+
+		ldaa		12,x		;cargo coordenada letra (FILA)
+		ldab		#NORM		;cargo valor de normalización de filas
+		sba				;obtengo numero de fila
+		ldab		#COL		;cargo longitud de fila
+		mul				;obtengo offset de fila
+		addd		9,x		;sumo offset de fila a la dirección del arreglo del jugador
+		stad		9,x		;obtengo dirección a la fila que se desea
+
+		ldab		11,x		;cargo coordenada (offset) de columna
+		clra				;borro AccA para tener el valor de AccB en AccD
+		addd		9,x		;sumo offset de columna a la dirección temporal
+		stad		9,x		;guardo en stack la dirección del byte a consultar
+
+		ldy		9,x		;cargo en IY la dirección del byte que se desea obtener
+		ldaa		0,y		;cargo el byte a devolver en AccA
+		staa		12,x		;guardo el byte a devolver en stack
+		%RESTORE
+		
+		rts
+		
+		
+
+*====================================================================================
+* Subrutina "WRITEPOS"
+*
+* Descripción: 	La subrutina busca en un array de tres dimensiones una 
+*               determinada posición, y escribe en la misma un byte de
+*		datos que será recibido como parámetro de entrada por stack.
+*
+* Parámetros de entrada:
+		- BYTE a escribir en la posición indicada
+*		- FILA del array (En HEX, de $0A (fil.0) en adelante)
+*		- COLUMNA del array (en HEX)
+*		- Dirección de comienzo del arreglo (2 bytes)
+*		- Número de arreglo (de 0 en adelante) (número de jugador)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*	Se destruirá el dato del índice al arreglo.
+*		
+* Parámetros de salida: NINGUNO
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 6 posiciones
+*
+*====================================================================================
+
+fetchpos	EQU		*
+
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		8,x		;cargo numero de jugador
+		ldab		#ARRAY_L	;cargo longitud del arreglo (MAX 255 bytes)
+		mul				;obtengo offset de jugador
+		addd		9,x		;sumo offset de jugador a top of array
+		stad		9,x		;obtengo direccion al arreglo del jugador
+
+		ldaa		12,x		;cargo coordenada letra (FILA)
+		ldab		#NORM		;cargo valor de normalización de filas
+		sba				;obtengo numero de fila
+		ldab		#COL		;cargo longitud de fila
+		mul				;obtengo offset de fila
+		addd		9,x		;sumo offset de fila a la dirección del arreglo del jugador
+		stad		9,x		;obtengo dirección a la fila que se desea
+
+		ldab		11,x		;cargo coordenada (offset) de columna
+		clra				;borro AccA para tener el valor de AccB en AccD
+		addd		9,x		;sumo offset de columna a la dirección temporal
+		stad		9,x		;guardo en stack la dirección del byte a consultar
+
+		ldy		9,x		;cargo en IY la dirección donde se desea escribir
+		ldaa		13,x		;cargo en AccA el byte que se quiere escribir en el arreglo
+		staa		0,y		;escribo el byte sobre el arreglo
+		%RESTORE
+		
+		rts			
+		
+*************************
+*	VARS		*
+*************************	
+		
+
+
+
+
+
