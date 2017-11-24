@@ -1,0 +1,116 @@
+		p68h11
+$macros.msa
+
+*------------
+* CONSTANTES
+*------------
+P1		EQU		0
+P2		EQU		1
+PN		EQU		2		;cantidad de jugadores
+
+*--------------------------------------------------------
+* El siguiente es un programa de un juego de batalla
+* naval para dos jugadores en el emulador Wookie FX.
+*--------------------------------------------------------
+		ORG		$2000
+init		EQU		*
+		lds		#STACKP
+		jsr		initdis		;inicialización de display 7 seg
+		jsr		init_kb		;inicialización de teclado
+		ldx		hitlist
+		pshx				;se envía inicio de arreglo de barcos a poner en 0
+*pushear longitud
+		jsr		clrzone
+		ldaa		#P2		;
+		staa		player		;se inicia con el jugador 1 (atacando al 2)
+
+main		EQU		*
+		jsr		imput		;se llama a la subrutina de interfaz de usuario
+		staa		letra_p		;se recibe en AccA la letra jugada (fila) y en AccB el número (columna)
+		stab		num_p		;se guarda la jugada
+
+		ldx		#hitlist
+		pshx				;se envía la posición del primer arreglo de barcos tocados
+		ldaa		letra_p
+		psha				;se envía la letra jugada
+		ldab		num_p
+		pshb				;se envía el número jugado
+		ldaa		player
+		psha				;se envía el jugador a atacar
+		jsr		busco		;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
+		bcs		next_p		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
+		%CLRST		4		;se limpia el stack
+		
+		ldaa		letra_p
+		psha				;se envía le letra jugada
+		ldab		num_p
+		pshb				;se envía el número jugado
+		ldx		p_board
+		pshx				;se envía la dirección de inicio de los arreglos de tablero
+		ldab		player
+		pshb				;se envía el jugador a atacar
+		jsr		fetchpos
+		%CLRST		4		;se limpia el stack
+		pula				;se toma del stack el dato del byte jugado
+
+		psha
+		jsr		game
+		%CLRST		1		;se limpia el stack
+		
+		ldx		#hitlist
+		pshx				;se envía la posición del primer arreglo de barcos tocados
+		ldaa		player
+		psha				;se envía el jugador a atacar
+		jsr		cont_bar	
+		bcs		end_game	;si se recibe el Carry en 1, el jugador de turno ganó
+
+		jsr		change_p	;se cambia de turno
+
+		ldx		p_board
+		pshx				;se envía el inicio de las matrices de tableros
+		ldaa		player
+		psha				;se envía el jugador atacado
+		ldaa		#ARRAY_L
+		psha				;se envía el tamaño de la matriz tablero
+		ldx		display
+		pshx				;se envía la matriz de display (destino a copiar)
+		
+next_p		EQU		*
+
+end_game	EQU		*
+
+*--------------------
+* subrutina change_p
+*--------------------
+change_p	EQU		*
+		
+*----------------
+* subrutina game
+*----------------
+game		EQU		*
+		%BACKUP
+
+		
+
+*-----------
+* VARIABLES
+*-----------
+***STACK***
+		ORG		$4000
+stack		RMB		300
+STACKP		EQU		*-1
+
+***MAIN VARIABLES***
+player		RMB		1		;variable de jugador
+letra_p		RMB		1
+num_p		RMB		1
+
+***ARREGLO DE BARCOS TOCADOS***
+$hitlist
+
+***MATRICES DE TABLERO DE CADA JUGADOR***
+p_board		RMB		ARRAY_L*PN	;una matriz por cada jugador
+
+***MATRIZ DE DISPLAY***
+		ORG		$5F00
+display		RMB		ARRAY_L		;matriz del display
