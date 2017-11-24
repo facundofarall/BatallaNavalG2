@@ -1,0 +1,214 @@
+**********************************
+* definicion de macro utilizados *
+**********************************
+* actualizar display
+	MACRO	%DISPLAY
+		ldx		#string
+		jsr		show
+	ENDMAC
+
+* activar un led en funcion de una variable
+	MACRO	%LED_INV
+		ldaa		PORTA
+		eora		#SHF_LED
+		staa		PORTA
+	ENDMAC
+* saltar
+	MACRO	%GOTO
+		jmp		\0
+	ENDMAC
+
+* salta a subrutina dentro de una tabla segun indice
+	MACRO	%SV_HANDL
+		ldx		#sv_table
+		ldab		#\0
+		abx				; busco la direccion de la subrutina
+		ldx		0,X
+		jsr		0,X		; y la llamo	
+	ENDMAC
+
+* empujar un numero en el display
+	MACRO	%SH_DISP
+		ldx		#val_str
+		jsr		sh_str		; empujo el string y tomo caracter sobrante
+		ldx		#string	
+		jsr		sh_value	; y lo meto en otro string desplazado
+	ENDMAC
+
+* define el estado del calc_ui
+	MACRO	%SETSTATE
+		ldaa		#\0
+		staa		calc_st		; establezco el estado del calculo
+	ENDMAC
+
+* calculo de resultado y muestra en display
+	MACRO	%SOLVE
+		jsr		sv_proc		; llamo a subrutina que procesa las operaciones
+		ldx		RESULT,Y	; paso resultado como parametro
+		ldy		#val_str	; y el string donde va a ir
+		ldab		#BYTES		; para convertir numero en string
+		jsr		to_str
+	ENDMAC
+
+* limpiar el request usado
+	MACRO	%CLR_REQ		
+		ldx		req_dir
+		ldaa		#REQ_SIZE
+		ldab		#0
+		jsr		clrarray	; limpio un request
+	ENDMAC
+
+* calcular y volver de parentesis
+	MACRO	%BACK_REQ
+		ldy		req_dir
+		jsr		sv_proc		;proceso el request y calculo su resultado
+		%CLR_REQ			;limpio el request
+		ldx		req_dir
+		xgdx
+		subd		#REQ_SIZE	;y vuelvo al anterior
+		xgdx
+		stx		req_dir
+	ENDMAC
+
+* verifica que haya entrado al menos un numero en el campo correspondiente
+	MACRO	%ISEMPTY
+		ldab		counter
+		cmpb		#1
+		bne		err\@
+		%SV_HANDL	ID_ERR
+		rts
+err\<		EQU		*
+	ENDMAC
+
+* nuevo request de parentesis
+	MACRO	%OPEN_REQ
+		ldy		req_dir
+		ldab		req_num
+		aby
+		%NEW_REQ			;creo nueva request
+		sty		RESULT,X	;las anido
+		com		FLAG_CH,X	;configuro la nueva request como operacion de parentesis
+	ENDMAC
+
+* anidar request con el proximo
+	MACRO	%CON_REQ
+		ldy		req_dir		;creo nuevo request y las anido
+		%NEW_REQ
+		stx		RESULT,Y	;guardando resultado de una, en el campo de otra
+	ENDMAC
+
+* mover al proximo request
+	MACRO	%NEW_REQ
+		ldx		req_dir		;muevo puntero en arreglo de estructuras
+		ldab		#REQ_SIZE
+		abx				;al proximo request o estructura
+		stx		req_dir
+		clr		counter		;y reinicio variables
+		ldaa		#NUM1
+		staa		req_num
+	ENDMAC
+
+* establecer numero de ingreso del request para calculos
+	MACRO	%SET_NUM2
+		ldx		req_dir
+		com		FLAG,X		;levanto flag de operacion
+		staa		OPER,X		;configuro la operacion
+		ldaa		#NUM2		
+		staa		req_num		;configuro variable de campo de numero
+		clr		counter
+	ENDMAC
+
+* realiza un salto a la subrutina correspondiente cuando coincide el operando
+	MACRO	%CMPOP
+		cmpa	0,Y
+		beq	\0
+		iny
+	ENDMAC
+
+* realizar back up de AccA, AccB, IX e IY
+	MACRO	%BACKUP
+		psha
+		pshb
+		pshx
+		pshy
+	ENDMAC
+
+* realizar restore de AccA, AccB, IX e IY
+	MACRO	%RESTORE
+		puly
+		pulx
+		pulb
+		pula
+	ENDMAC
+
+* limpiar el stack de datos enviados
+	MACRO	%CLRST
+CONT		set	\0
+		IF CONT > 0
+		ins
+		%CLRST	CONT-1
+		ENDIF
+	ENDMAC
+
+* envíar a stack un dato de 1 o 2 bytes
+	MACRO	%PSH
+		IF \0=1
+		ldab		\1
+		pshb
+		ELSE
+		ldx		\1
+		pshx
+		ENDIF
+	ENDMAC
+
+
+* cargar en una posicion de memoria un byte determinado
+	MACRO	%SET
+		ldab		\1
+		stab		\0
+	ENDMAC
+
+* declarar o reservar variables locales en subrutinas
+	MACRO	%MALLOC
+		IF \0 > 0
+		tsx
+		xgdx
+		subd	#\0
+		xgdx
+		txs
+		ENDIF
+	ENDMAC
+
+* liberar espacio de variables en subrutinas
+	MACRO	%RELMEM
+		IF \0 > 0
+		tsx
+		xgdx
+		addd	#\0
+		xgdx
+		txs
+		ENDIF		
+	ENDMAC
+
+* macros para organizar codigo por pasos o casos, segun valor de variable
+	MACRO	%SWITCH
+		ldab		\0
+		pshb
+	ENDMAC
+
+	MACRO	%CASE
+		pulb
+		pshb
+		cmpb		#\0
+		beq		br\@
+		jmp		br\@
+br\D		EQU		*
+	ENDMAC
+
+	MACRO	%BREAK
+br\I		equ		*	
+	ENDMAC
+
+	MACRO	%ENDSW
+		pulb
+	ENDMAC
