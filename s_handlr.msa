@@ -1,0 +1,129 @@
+*************************
+*	CONST		*
+*************************
+
+FILA	EQU	6
+COL	EQU	6
+ARRAY_L	EQU	FILA*COL
+NORM	EQU	10
+
+
+*************************
+*	CODE		*
+*************************
+*====================================================================================
+* Subrutina "PLAY_CNT"
+*
+* Descripción: 	Esta subrutina cuenta la cantidad de datos de dos bytes que se encuentran en una
+*		determinada zona de memoria configurada como array. Se supone que $00 no es un dato presente en dicho array, 
+*		usándose solamente como terminador del mismo.
+*
+* Parámetros de entrada:
+*		- Dirección de inicio del array
+*		- Número de jugador (0 o mayor)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*		
+* Parámetros de salida:
+*		- Cantidad de datos de dos bytes encontrados, por stack (máximo 255 datos).
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 2 posiciones antes de
+*		  recuperar el parámetro de salida.
+*
+*====================================================================================
+
+play_cnt		EQU		*
+
+			%BACKUP
+			tsx				;creo frame pointer
+			ldaa		8,x		;cargo número de array (jugador)
+			ldab		#HITSIZE	;cargo tamaño de array de 1 jugador
+			mul				;obtengo offset de jugador
+			addd		9,x		;sumo el offset de jugador al puntero al array
+			xgdy				;obtengo puntero al array del jugador deseado
+			clra				;inicializo contador
+			
+pc_loop			EQU		*		
+			
+			ldab		0,y		;cargo byte a comparar
+			beq		pc_end		;si es terminador, terminé de buscar
+			iny				;si no es terminador, me posiciono sobre siguiente dato de 
+			iny				;2 bytes
+			inca				;incremento contador
+			bra		pc_loop		;vuelvo a comparar
+			
+pc_end			EQU		*	
+			
+			staa		10,x		;devuelvo valor por stack
+			%RESTORE
+		
+			rts
+
+
+*====================================================================================
+* Subrutina "PLAY_WRT"
+*
+* Descripción: 	Esta subrutina escribe dos bytes distintos (en este caso, la posición 
+*		jugada, compuesta de una letra y un número) en la primera posición "libre"
+*		de un array y en la siguiente. La subrutina escribirá los datos desde la primera posición con ceros
+*		que encuentre en el array, por lo que el mismo NO podrá contener el dato "$00" en ninguno
+*		de sus bytes, caso contrario la subrutina lo interpretará como vacío y sobreescribirá información. Se
+*		supone que el array tendrá por lo menos, dos posiciones libres.
+*
+* Parámetros de entrada:
+*		- Primer byte a escribir (en este caso, fila jugada)
+*		- Byte a escribir a continuación del primero (en este caso, columna jugada)
+*		- Dirección de inicio del array en el que se va a escribir
+*		- Número de jugador (0 o mayor)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*		
+* Parámetros de salida: NINGUNO
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 5 posiciones
+*
+*====================================================================================
+
+play_wrt		EQU		*
+
+			%BACKUP
+			tsx				;creo frame pointer
+			ldaa		8,x		;cargo número de array (jugador)
+			ldab		#HITSIZE	;cargo tamaño de array de 1 jugador
+			mul				;obtengo offset de jugador
+			addd		9,x		;sumo el offset de jugador al puntero al array
+			xgdy				;obtengo puntero al array del jugador deseado
+
+
+pw_loop			EQU		*
+
+			ldaa		0,y		;cargo byte del array
+			beq		pw_end		;si es cero, entonces escribo los datos
+			iny				;si no es cero, me posiciono sobre la siguiente posición
+			bra		pw_loop		;vuelvo a buscar ceros
+
+pw_end			EQU		*
+
+			ldaa		12,x		;cargo primer byte a escribir
+			staa		0,y		;guardo primer byte en memoria
+			iny				;me posiciono en el siguiente byte
+			ldaa		11,x		;cargo segundo byte a escribir
+			staa		0,y		;guardo segundo byte en memoria
+			%RESTORE
+
+			rts
+			
+
+*************************
+*	VARS		*
+*************************
+
+
+		END
+
+
+
