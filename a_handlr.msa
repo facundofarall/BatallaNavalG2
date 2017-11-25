@@ -11,7 +11,7 @@ NORM	EQU	10
 *************************
 *	CODE		*
 *************************
-					
+ 				
 *====================================================================================
 * Subrutina "FETCHPOS"
 *
@@ -47,7 +47,7 @@ fetchpos	EQU		*
 		ldab		#ARRAY_L	;cargo longitud del arreglo (MAX 255 bytes)
 		mul				;obtengo offset de jugador
 		addd		9,x		;sumo offset de jugador a top of array
-		stad		9,x		;obtengo direccion al arreglo del jugador
+		std		9,x		;obtengo direccion al arreglo del jugador
 
 		ldaa		12,x		;cargo coordenada letra (FILA)
 		ldab		#NORM		;cargo valor de normalización de filas
@@ -55,12 +55,13 @@ fetchpos	EQU		*
 		ldab		#COL		;cargo longitud de fila
 		mul				;obtengo offset de fila
 		addd		9,x		;sumo offset de fila a la dirección del arreglo del jugador
-		stad		9,x		;obtengo dirección a la fila que se desea
+		std		9,x		;obtengo dirección a la fila que se desea
 
 		ldab		11,x		;cargo coordenada (offset) de columna
+		decb				;normalizo offset de columna
 		clra				;borro AccA para tener el valor de AccB en AccD
 		addd		9,x		;sumo offset de columna a la dirección temporal
-		stad		9,x		;guardo en stack la dirección del byte a consultar
+		std		9,x		;guardo en stack la dirección del byte a consultar
 
 		ldy		9,x		;cargo en IY la dirección del byte que se desea obtener
 		ldaa		0,y		;cargo el byte a devolver en AccA
@@ -79,7 +80,7 @@ fetchpos	EQU		*
 *		datos que será recibido como parámetro de entrada por stack.
 *
 * Parámetros de entrada:
-		- BYTE a escribir en la posición indicada
+*		- BYTE a escribir en la posición indicada
 *		- FILA del array (En HEX, de $0A (fil.0) en adelante)
 *		- COLUMNA del array (en HEX)
 *		- Dirección de comienzo del arreglo (2 bytes)
@@ -96,7 +97,7 @@ fetchpos	EQU		*
 *
 *====================================================================================
 
-fetchpos	EQU		*
+writepos	EQU		*
 
 		%BACKUP
 		tsx				;creo frame pointer
@@ -104,7 +105,7 @@ fetchpos	EQU		*
 		ldab		#ARRAY_L	;cargo longitud del arreglo (MAX 255 bytes)
 		mul				;obtengo offset de jugador
 		addd		9,x		;sumo offset de jugador a top of array
-		stad		9,x		;obtengo direccion al arreglo del jugador
+		std		9,x		;obtengo direccion al arreglo del jugador
 
 		ldaa		12,x		;cargo coordenada letra (FILA)
 		ldab		#NORM		;cargo valor de normalización de filas
@@ -112,12 +113,13 @@ fetchpos	EQU		*
 		ldab		#COL		;cargo longitud de fila
 		mul				;obtengo offset de fila
 		addd		9,x		;sumo offset de fila a la dirección del arreglo del jugador
-		stad		9,x		;obtengo dirección a la fila que se desea
+		std		9,x		;obtengo dirección a la fila que se desea
 
 		ldab		11,x		;cargo coordenada (offset) de columna
+		decb				;normalizo offset de columna
 		clra				;borro AccA para tener el valor de AccB en AccD
 		addd		9,x		;sumo offset de columna a la dirección temporal
-		stad		9,x		;guardo en stack la dirección del byte a consultar
+		std		9,x		;guardo en stack la dirección del byte a consultar
 
 		ldy		9,x		;cargo en IY la dirección donde se desea escribir
 		ldaa		13,x		;cargo en AccA el byte que se quiere escribir en el arreglo
@@ -128,10 +130,10 @@ fetchpos	EQU		*
 		
 *************************
 *	VARS		*
-*************************	
-		
+*************************
 
 
+		END
 
 
 
