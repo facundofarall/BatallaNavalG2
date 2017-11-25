@@ -4,5 +4,5 @@ CAR		EQU 		3
 EL_SIZE 	EQU 		2
 CANTIDAD 	EQU 		SUB*1+CAR*2
 HITSIZE		EQU		EL_SIZE*CANTIDAD+1
-hitlist		RMB 		HITLISTS*2
+hitlist		RMB 		HITSIZE*2
 ****************************************************************************************************
