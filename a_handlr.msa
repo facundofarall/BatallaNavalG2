@@ -11,6 +11,59 @@ NORM	EQU	10
 *************************
 *	CODE		*
 *************************
+*====================================================================================
+* Subrutina "MIRROR"
+*
+* Descripción: 	Esta subrutina copia el contenido de las posiciones de un array fuente
+*		a un espacio de memoria destino.
+* Parámetros de entrada:
+*		- Dirección de comienzo de array FUENTE
+*		- Número de arreglo contenido en otro arreglo (número de jugador)(0 en adelante)
+*		- Dirección de DESTINO de la copia 
+*		- Número de posiciones a copiar (un byte, hasta 255 posiciones.)
+*		- Número de arreglo (de 0 en adelante) (número de jugador)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*	Se destruirá el dato de la dirección del array de origen.
+*		
+* Parámetros de salida: NINGUNO
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 6 posiciones
+*
+*====================================================================================
+
+mirror		EQU		*	
+	
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		11,x		;cargo número de jugador
+		ldab		8,x		;cargo longitud de la copia (del array a copiar)
+		mul				;obtengo offset de jugador
+		addd		12,x		;sumo offset de jugador
+		std		12,x		;guardo la dirección con offset del array fuente
+
+		ldaa		11,x		;cargo longitud de copia en contador
+		beq		mi_end		;si es cero, vuelvo desde subrutina
+		ldy		9,x		;cargo índice a destino de la copia.
+		ldx		12,x		;cargo índice a array origen de copia.
+
+mi_loop		EQU		*
+
+		ldab		0,x		;cargo byte a copiar
+		stab		0,y		;copio byte en destino
+		inx				;siguiente byte
+		iny				;siguiente byte
+		deca				;decremento contador
+		bne		mi_loop
+
+mi_end		EQU		*
+
+		%RESTORE
+	
+		rts	
+		
  				
 *====================================================================================
 * Subrutina "FETCHPOS"
