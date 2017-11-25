@@ -64,7 +64,9 @@ main		EQU		*
 		jsr		cont_bar	
 		bcs		end_game	;si se recibe el Carry en 1, el jugador de turno ganó
 
-		jsr		change_p	;se cambia de turno
+next_p		EQU		*
+		jsr		whoplays	;se recibirá en AccA el jugador a atacar a continuación
+		staa		player		;se habilita la siguiente jugada
 
 		ldx		p_board
 		pshx				;se envía el inicio de las matrices de tableros
@@ -74,16 +76,17 @@ main		EQU		*
 		psha				;se envía el tamaño de la matriz tablero
 		ldx		display
 		pshx				;se envía la matriz de display (destino a copiar)
-		
-next_p		EQU		*
+		jsr		mirror		;se envía el tablero del jugador atacado al display
+
+		bra		main
 
 end_game	EQU		*
+		ldaa		player
+		psha
+		jsr		winner
+end_loop	EQU		*
+		bra		end_loop
 
-*--------------------
-* subrutina change_p
-*--------------------
-change_p	EQU		*
-		
 *----------------
 * subrutina game
 *----------------
