@@ -19,9 +19,10 @@ init		EQU		*
 		jsr		init_kb		;inicialización de teclado
 		ldx		hitlist
 		pshx				;se envía inicio de arreglo de barcos a poner en 0
-*pushear longitud
+		ldaa		#(HITSIZE*2)
+		psha				;se envía el tamaño del arreglo a limpiar
 		jsr		clrzone
-		ldaa		#P2		;
+		ldaa		#P2		;se inicia atacando al jugador 2
 		staa		player		;se inicia con el jugador 1 (atacando al 2)
 
 main		EQU		*
@@ -54,7 +55,7 @@ main		EQU		*
 		pula				;se toma del stack el dato del byte jugado
 
 		psha
-		jsr		game
+		jsr		gameplay
 		%CLRST		1		;se limpia el stack
 		
 		ldx		#hitlist
@@ -72,10 +73,10 @@ next_p		EQU		*
 		pshx				;se envía el inicio de las matrices de tableros
 		ldaa		player
 		psha				;se envía el jugador atacado
-		ldaa		#ARRAY_L
-		psha				;se envía el tamaño de la matriz tablero
 		ldx		display
 		pshx				;se envía la matriz de display (destino a copiar)
+		ldaa		#ARRAY_L
+		psha				;se envía el tamaño de la matriz tablero
 		jsr		mirror		;se envía el tablero del jugador atacado al display
 
 		bra		main
@@ -90,7 +91,7 @@ end_loop	EQU		*
 *----------------
 * subrutina game
 *----------------
-game		EQU		*
+gameplay	EQU		*
 		%BACKUP
 
 		
