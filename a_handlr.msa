@@ -89,6 +89,7 @@ mi_end		EQU		*
 * Consideraciones:
 *		- Antes de recuperar el byte en stack se debe normalizar el mismo
 *		  en 4 posiciones (4 bytes)
+*		- Requiere definición de constante "ARRAY_L"
 *
 *====================================================================================
 
@@ -147,6 +148,7 @@ fetchpos	EQU		*
 *
 * Consideraciones:
 *		- Luego de invocada, se debe normalizar el stack en 6 posiciones
+*		- Requiere definición de constante "ARRAY_L"
 *
 *====================================================================================
 
