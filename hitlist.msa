@@ -1,8 +1,7 @@
 *************************arreglo de posiciones tocadas**********************************************		
-		org 		$inicio
-SUB		equ 		3
-CAR		equ 		3
-EL_SIZE 	equ 		2
-CANTIDAD 	equ 		SUB*1+CAR*2
-hitlist		rmb 		EL_SIZE*CANTIDAD
+SUB		EQU 		3
+CAR		EQU 		3
+EL_SIZE 	EQU 		2
+CANTIDAD 	EQU 		SUB*1+CAR*2
+hitlist		RMB 		(EL_SIZE*CANTIDAD+1)*2
 ****************************************************************************************************
