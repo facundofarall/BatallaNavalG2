@@ -15,7 +15,7 @@ NORM	EQU	10
 * Subrutina "PLAY_SRC"
 *
 * Descripción: 	Esta subrutina busca dos bytes consecutivos (posicion jugada) dentro de un arreglo.
-		El valor $00 podrá estar en el array solo como terminador
+*		El valor $00 podrá estar en el array solo como terminador
 * Parámetros de entrada:
 *		- Byte1 a buscar (en este caso, n° fila)
 *		- Byte2 a buscar (en este caso, n° columna)
@@ -48,15 +48,18 @@ ps_loop			EQU		*
 
 			ldaa		0,y		;cargo byte1 a comparar
 			beq		ps_ntfnd	;si encontré el terminador, el valor requerido no está en el array
-			iny				;me posiciono sobre siguiente byte1 a comparar
-			iny
+
 			cmpa		12,x		;comparo con el byte1 a buscar
 			beq		ps_next		;si coinciden, busco el byte 2
+			iny				;me posiciono sobre siguiente byte1 a comparar
+			iny
 			bra		ps_loop		;vuelvo a comparar
 
 ps_next			EQU		*
 
 			ldab		1,y		;cargo byte a continuación del anterior
+			iny				;me posiciono sobre siguiente byte1 a comparar
+			iny
 			cmpb		11,x		;comparo con byte2
 			bne		ps_loop		;si no son iguales, sigo buscando
 			sec				;set del carry para informar que se encontró el valor
@@ -71,6 +74,7 @@ ps_end			EQU		*
 			%RESTORE
 
 			rts
+
 
 
 			
