@@ -12,6 +12,72 @@ NORM	EQU	10
 *	CODE		*
 *************************
 *====================================================================================
+* Subrutina "PLAY_SRC"
+*
+* Descripción: 	Esta subrutina busca dos bytes consecutivos (posicion jugada) dentro de un arreglo.
+		El valor $00 podrá estar en el array solo como terminador
+* Parámetros de entrada:
+*		- Byte1 a buscar (en este caso, n° fila)
+*		- Byte2 a buscar (en este caso, n° columna)
+*		- Dirección de inicio del array
+*		- Número de jugador (0 o mayor)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*		
+* Parámetros de salida:
+*		- Carry en 1, si se encontró la posición.
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 5 posiciones antes de
+*		  recuperar el parámetro de salida.
+*
+*====================================================================================
+
+play_src		EQU		*		
+			
+			%BACKUP
+			tsx				;creo frame pointer
+			ldaa		8,x		;cargo número de array (jugador)
+			ldab		#HITSIZE	;cargo tamaño de array de 1 jugador
+			mul				;obtengo offset de jugador
+			addd		9,x		;sumo el offset de jugador al puntero al array
+			xgdy				;obtengo puntero al array del jugador deseado
+
+ps_loop			EQU		*
+
+			ldaa		0,y		;cargo byte1 a comparar
+			beq		ps_ntfnd	;si encontré el terminador, el valor requerido no está en el array
+			iny				;me posiciono sobre siguiente byte1 a comparar
+			iny
+			cmpa		12,x		;comparo con el byte1 a buscar
+			beq		ps_next		;si coinciden, busco el byte 2
+			bra		ps_loop		;vuelvo a comparar
+
+ps_next			EQU		*
+
+			ldab		1,y		;cargo byte a continuación del anterior
+			cmpb		11,x		;comparo con byte2
+			bne		ps_loop		;si no son iguales, sigo buscando
+			sec				;set del carry para informar que se encontró el valor
+			bra		ps_end
+			
+ps_ntfnd		EQU		*
+
+			clc				;carry en 0 para informar que no se encontró el valor
+
+ps_end			EQU		*
+		
+			%RESTORE
+
+			rts
+
+
+			
+
+			
+
+*====================================================================================
 * Subrutina "PLAY_CNT"
 *
 * Descripción: 	Esta subrutina cuenta la cantidad de datos de dos bytes que se encuentran en una
