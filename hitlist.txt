@@ -1,0 +1,8 @@
+*************************arreglo de posiciones tocadas**********************************************		
+		org 		$inicio
+SUB		equ 		3
+CAR		equ 		3
+EL_SIZE 	equ 		2
+CANTIDAD 	equ 		SUB*1+CAR*2
+hitlist		rmb 		EL_SIZE*CANTIDAD
+****************************************************************************************************
