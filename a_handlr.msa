@@ -44,7 +44,7 @@ mirror		EQU		*
 		addd		12,x		;sumo offset de jugador
 		std		12,x		;guardo la dirección con offset del array fuente
 
-		ldaa		11,x		;cargo longitud de copia en contador
+		ldaa		12,x		;cargo longitud de copia en contador
 		beq		mi_end		;si es cero, vuelvo desde subrutina
 		ldy		9,x		;cargo índice a destino de la copia.
 		ldx		12,x		;cargo índice a array origen de copia.
