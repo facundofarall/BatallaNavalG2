@@ -49,10 +49,10 @@
 
 * limpiar el stack de datos enviados
 	MACRO	%CLRST
-CONT		set	\0
-		IF CONT > 0
+CONT_M		SET	\0
+		IF CONT_M > 0
 		ins
-		%CLRST	CONT-1
+		%CLRST	CONT_M-1
 		ENDIF
 	ENDMAC
 * activar un led en funcion de una variable
