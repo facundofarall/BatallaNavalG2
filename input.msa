@@ -1,0 +1,460 @@
+		p68H11
+
+$macros.msa
+
+*------------
+* CONSTANTES
+*------------
+
+******* Ports ***************************
+
+DDRC		equ 		$1007   	;data direction register for C
+PIOC    	equ 		$1002   	;for strobe B assertion change
+PORTCL  	equ 		$1005  	 	;port C latched
+PORTB   	equ 		$1004		;port B
+PORTC	 	equ 		$1003		;rows
+PORTA		equ		$1000
+
+SHF_LED		equ		$40
+
+******* Cols and Row Ports **************
+
+ROWS	 	equ		PORTC   	;outputs
+COLS    	equ		PORTCL		;inputs
+
+***** Col Mask **************************
+COL0		equ		00010000b
+	 
+***** Row Masks *************************
+
+FIL0		equ		00001110b  	;mascaras para manejo de filas
+FIL1		equ		00001101b
+FIL2		equ		00001011b
+FIL3		equ		00000111b
+
+LENGTH		equ		4		; largo del display
+
+****** Keyboard Mask ********************
+Button_1	equ		8
+Button_2	equ		9
+Button_3	equ		10
+Button_4	equ		12
+Button_5	equ		13
+Button_6	equ		14		
+Button_A	equ		0	
+Button_B	equ		1
+Button_C	equ		2
+Button_D	equ		4
+Button_E	equ		5
+Button_F	equ		6
+B_fire		equ		11
+B_P1		equ		3
+B_P2		equ		7
+B_reset		equ		15
+
+EOT		equ		0
+ESP		equ		$20	
+
+P1		equ		0
+P2		equ		1
+
+*---------------------------------------
+* WhoPlays: subrutina para ver que 
+*           jugador juega
+*---------------------------------------
+
+whoplays	EQU		*
+
+wait_ply	jsr		read_kb
+		tsta
+		bmi		wait_ply
+		cmpa		#B_P1
+		beq		play_p1
+		cmpa		#B_P2
+		bne		wait_ply
+		ldaa		#P2
+		bra		ply_end
+
+play_p1		ldaa		#P1
+ply_end		rts		
+
+*---------------------------------------
+* Input: subrutina que devuelve
+*        entrada para la batalla naval
+* AccA: Fila de la posicion jugada
+* AccB: Columna de la posicion jugada
+*---------------------------------------
+
+MIN_FIL		EQU		10
+MAX_FIL		EQU		15
+MIN_COL		EQU		1
+MAX_COL		EQU		6	
+
+CONT		EQU		0
+FILA		EQU		2
+COL		EQU		1
+
+INPUTS		EQU		3
+
+input		EQU		*
+
+* back up de registros
+		pshx
+		pshy
+
+* creo variables locales
+		psha
+		psha
+		psha
+
+* inicializo framepointer
+		tsy
+
+* prendo el led
+		%LED_INV
+
+* inicializo el contador
+inp_rest	ldaa		#INPUTS
+		staa		CONT,Y
+		
+* limpio el display
+		ldx		#string
+		ldaa		#4
+		ldab		#ESP
+		jsr		clrarray
+
+		jsr		clr_dis
+
+		ldaa		#$FF
+		staa		buffer
+
+* lectura de teclado
+wait_kb		jsr		read_kb
+		tsta
+		bmi		wait_kb
+		cmpa		buffer
+		beq		wait_kb
+		staa		buffer
+		
+		cmpa		#B_reset
+		beq		inp_rest
+
+		dec		CONT,Y
+		beq		chk_fire
+		psha
+		ldx		#kb_value
+		tab
+		abx
+		ldaa		0,X		
+		pshy
+		ldab		CONT,Y
+		aby
+		staa		0,Y
+		puly
+
+		pulb
+		jsr		to_ascii
+		tba
+		
+		ldx		#string
+		jsr		sh_value
+
+		ldx		#string
+		jsr		show
+
+		bra		wait_kb
+
+chk_fire	cmpa		#B_fire
+		bne		inp_rest
+		ldaa		FILA,Y
+		cmpa		#MIN_FIL
+		blo		inp_rest
+		cmpa		#MAX_FIL
+		bhi		inp_rest
+		ldaa		COL,Y
+		cmpa		#MIN_COL
+		blo		inp_rest
+		cmpa		#MAX_COL
+		bhi		inp_rest
+
+* apago el led
+		%LED_INV
+
+* libero variables locales
+		pula
+		pula
+		pula
+
+return		ldaa		FILA,Y
+		ldab		COL,Y		
+
+* restore de registros
+		puly
+		pulx
+
+		rts
+
+*------------------------------------
+* Show: Por IX direccion de string de
+*	4 caracteres para imprimir
+*------------------------------------
+
+show		equ		*
+
+* back up de registros
+		pshx
+		pshb
+		psha
+
+* inicializo contador de posiciones
+		ldab		#LENGTH
+		
+* loop para enviar a cada posicion
+sh_loop		decb
+		bmi		sh_end		; si no pase por todas las posiciones
+		ldaa		0,X		; tomo del string el caracter
+		jsr		outchar		; y lo imprimo en la posicion actual
+		inx
+		bra		sh_loop
+
+* restore de registros				
+sh_end		pula
+		pulb
+		pulx
+		rts
+
+*----------------------------------------------
+* read_kb: AccA: tecla presionada
+*	   o -1
+*----------------------------------------------
+
+NONE		equ		-1
+MASK_FIL	equ		3
+MASK_COL	equ		2
+COL_CONT	equ		1
+KB_PRESS	equ		0
+
+read_kb		equ		*
+
+* back up de registros
+		pshx
+		pshb
+
+* creo espacio para variables locales
+		%MALLOC		1		; variable mascara de filas
+		%MALLOC		1		; variable mascara de columnas
+		%MALLOC		1		; variable contador de columnas
+		%MALLOC		1		; variable contador de tecla
+
+* inicializacion de variables
+		tsx				; framepointer para acceder a locales
+		ldab		#LENGTH		; contador de fila
+		ldaa		#FIL0		; mascara para la fila cero
+		staa		MASK_FIL,X	
+		ldaa		#COL0		; mascara para la columna cero
+		staa		MASK_COL,X
+		clra				; contador de columna
+		staa		COL_CONT,X
+		staa		KB_PRESS,X	; variable con numero de tecla
+
+* loop para barrer y mirar teclado matricial
+kb_loop		ldaa		#NONE
+		decb				
+		bmi		kb_end		; me fijo si recorrio todas las filas
+		ldaa		MASK_FIL,X	; enmascaro la siguiente fila
+		staa		ROWS
+		sec				; carry para rotacion de byte
+		rola				
+		staa		MASK_FIL,X	; cambio variable mascara para la proxima fila
+
+		ldaa		#LENGTH
+		staa		COL_CONT,X
+		ldaa		#COL0		; inicializo variable para barrer
+		staa		MASK_COL,X	; la columna
+
+kb_col		dec		COL_CONT,X	; me fijo si barrio todas las columnas
+		bmi		kb_loop
+		ldaa		COLS		; leo el puerto de columnas
+		anda		MASK_COL,X	; enmascaro columna
+		beq		kb_hit		; si es nulo apretaron un boton
+		lsla				; cambio mascara para proxima columna
+		staa		MASK_COL,X
+		inc		KB_PRESS,X	; incremento numero de tecla
+		bra		kb_col
+
+kb_hit		ldaa		KB_PRESS,X	; apretaron una tecla, lo comparo
+		cmpa		kb_buff		; con la que fue apretada antes
+		bne		kb_end		; aviso por led
+
+kb_none		ldaa		#NONE		; en caso de que no apreten nada
+
+kb_end		staa		kb_buff		; actualizo variable
+			
+* elimino variables locales
+		%RELMEM		1
+		%RELMEM		1
+		%RELMEM		1
+		%RELMEM		1
+
+* restore de registros
+		pulb
+		pulx
+		
+		rts
+
+*----------------------------------------------
+* init_kb: subrutina para inicializar teclado
+*----------------------------------------------
+
+init_kb		equ		*
+
+* back up de registros
+		psha
+
+* inicializacion de teclado		
+		ldaa		#NONE
+		staa		kb_buff
+
+* restore de registros
+		pula
+		rts
+
+*--------------------------------
+* Inicializa display (y teclado)
+*--------------------------------
+
+initdis		equ		*
+	
+		psha
+
+		ldaa		#$0F       ;set for input/output
+		staa		DDRC       ;C output
+		ldaa 		PIOC       ;get current value
+		anda 		#$FE       ;reset bit 0 to 0
+		staa		PIOC       ;send it out
+	
+		pula
+		rts
+
+*--------------------------------------------------------------
+* sh_value: toma un string, desplaza los caracteres a izquierda
+*           y agrega un nuevo caracter
+*           IX: direccion del string
+*           AccA: nuevo valor
+*--------------------------------------------------------------
+
+sh_value	equ		*
+
+* back up de registros
+		pshx
+		pshb
+
+* loop para desplazar caracteres
+v_loop		ldab		1,X		;tomo elemento siguiente en string
+		beq		v_end
+		stab		0,X		;y lo guardo en posicion actual
+		inx
+		bra		v_loop		
+
+v_end		staa		0,X		;ingresa nuevo caracter en cadena desplazada
+
+* restore de registros
+		pulb
+		pulx
+		rts
+
+*----------------------------------------------
+* toAscii: toma numero de boton del teclado
+*	   y devuelve su correspondiente en
+*          ascii
+*          toma  AccB: valor del boton
+*	   devuelve AccB: ascii
+*----------------------------------------------
+
+to_ascii	equ		*
+
+* back up de registros
+		pshx
+
+* inicializacion de variables
+		ldx		#kb_ascii	; apunto a string con caracteres asignados por tecla
+		abx				; me muevo en string con indice y recupero segun tecla presionada
+		ldab		0,X		
+
+* restore de registros
+		pulx
+		rts
+
+*--------------------------------
+*Outchar: ACCA: Carácter a enviar
+*	    ACCB: Posición (0-3)
+*--------------------------------
+outchar		equ		*
+	
+		stab 		PORTCL  	;set the position 
+		staa		PORTB		;set the character
+	
+		rts
+
+*-------------------------
+* clr_dis: Limpia display
+*-------------------------
+
+clr_dis		equ		*
+
+* hago back up de registros
+		pshb
+		psha
+
+* inicializo el contador de posiciones
+		ldab		#LENGTH
+
+* loop para limpiar cada posicion
+clr_loop	decb
+		bmi		clr_end		; si no pase por todas las posiciones
+		ldaa		#ESP		; cargo en esta posicion espacio blanco
+		jsr		outchar		; y lo envio
+		bra		clr_loop		
+
+* restore de registros
+clr_end		pula
+		pulb
+		rts
+
+*-------------------------------------------------------
+* clrarray: subrutina para limpiar un array dado
+* parametros: IX direccion del array
+*             AccA cantidad de elementos del array
+*	      AccB caracter a poner
+*-------------------------------------------------------
+
+clrarray	equ		*
+		
+cra_loop	deca				;contador con cantidad de elementos a limpiar
+		beq		cra_end
+		stab		0,X		;reemplazar elemento por caracter a poner
+		inx
+		bra		cra_loop
+		
+cra_end		stab		0,X
+		rts
+
+*------------
+* variables
+*------------
+		ORG		$3000
+
+stack		RMB		300
+stack_p		EQU		*-1
+
+kb_buff		RMB		1
+buffer		RMB		1
+
+string		FCC		'    '
+		FCB		0
+
+kb_value	FCB		10,11,12,0,13,14,15,0,1,2,3,0,4,5,6
+
+kb_ascii	FCC		'ABC DEF 123 456'
+
+		END

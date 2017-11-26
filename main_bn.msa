@@ -1,17 +1,22 @@
 		p68h11
 $macros.msa
 
-*------------
+*============
 * CONSTANTES
-*------------
+*============
 P1		EQU		0
 P2		EQU		1
 PN		EQU		2		;cantidad de jugadores
 
-*--------------------------------------------------------
+WATER		EQU		00001000b	;verde
+SUNK_SUB	EQU		01010000b	;bordeaux para submarinos
+HIT		EQU		10110000b	;naranja
+SUNK_SHI	EQU		10010000b	;bordeaux para cargueros
+
+*========================================================
 * El siguiente es un programa de un juego de batalla
 * naval para dos jugadores en el emulador Wookie FX.
-*--------------------------------------------------------
+*========================================================
 		ORG		$2000
 init		EQU		*
 		lds		#STACKP
@@ -38,9 +43,9 @@ main		EQU		*
 		pshb				;se envía el número jugado
 		ldaa		player
 		psha				;se envía el jugador a atacar
-		jsr		busco		;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
+		jsr		play_src	;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
 		bcs		next_p		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
-		%CLRST		4		;se limpia el stack
+		%CLRST		5		;se limpia el stack
 		
 		ldaa		letra_p
 		psha				;se envía le letra jugada
@@ -54,9 +59,19 @@ main		EQU		*
 		%CLRST		4		;se limpia el stack
 		pula				;se toma del stack el dato del byte jugado
 
-		psha
+		ldx		#hitlist
+		pshx				;se envía inicio del arreglo de barcos atacados
+		psha				;se envía el byte a jugado
+		ldaa		letra_p
+		psha				;se envía le letra jugada
+		ldab		num_p
+		pshb				;se envía el número jugado
+		ldx		p_board
+		pshx				;se envía la dirección de inicio de los arreglos de tablero
+		ldab		player
+		pshb				;se envía el jugador a atacar
 		jsr		gameplay
-		%CLRST		1		;se limpia el stack
+		%CLRST		8		;se limpia el stack
 		
 		ldx		#hitlist
 		pshx				;se envía la posición del primer arreglo de barcos tocados
@@ -85,20 +100,135 @@ end_game	EQU		*
 		ldaa		player
 		psha
 		jsr		winner
+
 end_loop	EQU		*
 		bra		end_loop
 
-*----------------
-* subrutina game
-*----------------
+*=======================================================================
+* subrutina gameplay
+* Función: Determina si la posición jugada en el juego de batalla naval
+* 	   para Wookie FX fue "agua", "submarion" o "carguero", y toma 
+*	   la decisión de qué hacer al respecto.
+* Recibe: - Dirección arreglo auxiliar de barcos
+	  - Byte a jugar.
+*	  - FILA del array (En HEX, de $0A (fil.0) en adelante)
+*         - COLUMNA del array (en HEX)
+*         - Dirección de comienzo del arreglo (2 bytes)
+*	  - Número de arreglo (de 0 en adelante) (número de jugador)
+*	TODO POR STACK.
+* Devuelve: parámetro jugado en posición correspondiente.
+* Requiere: 
+*=======================================================================
 gameplay	EQU		*
 		%BACKUP
-
 		
+		tsx				;se usa el IX como frame pointer
+		ldaa		13,x		;se carga en AccA el byte a analizar
+		andaa		#11000000b	;se enmascan los bits 0 a 5, para analizar los más significativos
 
-*-----------
+gp_water	EQU		*
+		bne		gp_sub		;se estudia si era agua
+		%WRITEPOS	#WATER		;se cambia el color en el tablero
+		bra		end_gp
+
+gp_sub		EQU		*
+		cmpa		#01000000b	;se estudia si era un submarino
+		bne		gp_shi_r
+		%WRITEPOS	#SUNK_SUB	;se cambia el color en el tablero
+		%PLAY_WRT			;se agraga la posición al array de barcos atacados
+		bra		end_gp
+
+gp_shi_r	EQU		*		;si no era ninguno de los anteriores, es un carguero
+		ldab		12,x
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		incb				;se avanza a la derecha
+		pshb				;se envía el num (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de la derecha
+		%CLRST		5
+		bcc		gp_shi_l	;si no había barco atacado en la derecha, se busca la izquierda
+		%WRITEPOS	#SUNK_SHI	
+		inc		11,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		dec		11,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		bra		end_gp
+
+gp_shi_l	EQU		*
+		ldab		12,x
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		decb				;se retrocede a la izquierda
+		pshb				;se envía el número (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de la izquierda
+		%CLRST		5
+		bcc		gp_shi_u	;si no había barco atacado a la izquierda, se busca arriba
+		%WRITEPOS	#SUNK_SHI	
+		dec		11,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		inc		11,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		bra		end_gp
+
+gp_shi_u	EQU		*
+		ldab		12,x
+		decb				;se va a la posición de arriba
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		pshb				;se envía el num (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de arriba
+		%CLRST		5
+		bcc		gp_shi_d	;si no había barco atacado arriba, se busca abajo
+		%WRITEPOS	#SUNK_SHI	
+		dec		12,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		inc		12,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		bra		end_gp
+
+gp_shi_d	EQU		*
+		ldab		12,x
+		incb				;se va a la posición de abajo
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		pshb				;se envía el num (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de abajo
+		%CLRST		5
+		bcc		gp_shi_h	;si no había barco atacado abajo, el carguero está tocado
+		%WRITEPOS	#SUNK_SHI	
+		inc		12,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		dec		12,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		bra		end_gp
+
+gp_shi_h	EQU		*
+		%WRITEPOS	#HIT		;se marca al carguero como tocado
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+
+end_gp		EQU		*
+		%RESTORE
+		rts
+
+*===========
 * VARIABLES
-*-----------
+*===========
 ***STACK***
 		ORG		$4000
 stack		RMB		300
