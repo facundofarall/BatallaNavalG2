@@ -1,6 +1,130 @@
 **********************************
 * definicion de macro utilizados *
 **********************************
+* agrega posicion al arreglo de posiciones prohibidas
+* toma en A la fila y en B la columna
+
+		MACRO	%PROH_POS
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+		ENDMAC
+
+* agrega las posiciones de la periferia de una posicion al arreglo
+* de prohibidas, tomando en A la fila y en B la columna de dicha posicion
+
+		MACRO	%PROH_PER
+			
+		inca
+		%PROH_POS
+	
+		deca
+		incb
+		%PROH_POS
+
+		deca
+		decb
+		%PROH_POS
+
+		inca
+		decb
+		%PROH_POS
+
+		ENDMAC
+
+* escribe una posicion en la matriz del tablero y toma
+* por A como fila y B como columna de dicha posicion
+* el parametro \0 indica que tipo de barco es el grabado
+
+		MACRO	%SET_POS
+
+		ldaa		#\0
+		psha
+		ldaa		SA_FIL,Y
+		psha
+		pshb
+		ldx		SA_MAT,Y
+		pshx
+		clra
+		psha
+		jsr		writepos
+		pula
+		pulx
+		pulb
+		pula
+		pula
+
+		ENDMAC
+
+* me fijo que la posicion este o no este en el arreglo de posiciones
+* prohibidas, la A se toma como la fila y la B como la columna
+
+		MACRO	%IS_PROH
+
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_src
+		pula
+		pulx
+		pulb
+		pula
+
+		ENDMAC
+
+* agrego una posicion al arreglo auxiliar para cargueros
+* y se toma que en A esta la fila y en B la columna
+
+		MACRO	%AUX_POS
+
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		ENDMAC
+
+* establezco el arreglo auxiliar con las posiciones
+* perifericas del carguero, toma en A fila y B columna
+* de la parte uno del carguero
+
+		MACRO	%SET_AUX
+		
+		inca
+		%AUX_POS
+		
+		deca
+		incb
+		%AUX_POS
+		
+		deca
+		decb
+		%AUX_POS
+
+		inca
+		decb
+		%AUX_POS		
+
+		ENDMAC
+
 * invocar a la subrutina writepos
 	MACRO	%WRITEPOS
 		ldab		\0

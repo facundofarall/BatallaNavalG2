@@ -2,10 +2,6 @@
 
 $macros.msa
 
-*------------
-* CONSTANTES
-*------------
-
 *--------------------------------------------
 * setarmy: subrutina para definir los barcos
 * 	   de cada usuario
@@ -19,7 +15,7 @@ N_AUX		EQU		4
 
 SA_FIL		EQU		0
 SA_COL		EQU		1
-SA_cARG		EQU		2
+SA_CARG		EQU		2
 SA_CONT		EQU		3
 SA_TOT		EQU		4
 SA_DIR		EQU		10
@@ -70,7 +66,7 @@ sa_check	ldaa		SA_CONT,Y
 
 * display mensaje para indicar barco
 sa_show		ldx		#msg
-		ldab		SA_CONT,Y
+		ldab		SA_CONT,Y.
 		abx
 		jsr		show
 
@@ -81,17 +77,7 @@ sa_again	jsr		input
 		stab		SA_COL,Y
 
 * verifico que no sea una posicion prohibida
-		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_src
-		pula
-		pulx
-		pulb
-		pula
+		%IS_PROH
 		bcs		sa_again
 
 * me fijo que tipo de barco se ingresa
@@ -101,188 +87,62 @@ sa_again	jsr		input
 		pula
 		bhs		sa_shi
 * escribo en matriz el submarino
-sa_sub		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		inca
-		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		deca
-		incb
-		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		deca
-		decb
-		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		inca
-		decb
-		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		ldaa		#SUB_NP
-		psha
-		ldaa		SA_FIL,Y
-		psha
-		pshb
-		ldx		SA_MAT,Y
-		pshx
-		clra
-		psha
-		jsr		writepos
-		pula
-		pulx
-		pulb
-		pula
-		pula
-
+sa_sub		%PROH_POS
+		%PROH_PER
+		%SET_POS	#SUB_NP
 		inc		SA_CONT,Y
 		bra		sa_check
 
 sa_shi		tst		SA_CARG,Y
-		bne
-
-		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		inca
-		psha
-		pshb
-		ldx		#arry_aux
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		deca
-		incb
-		psha
-		pshb
-		ldx		#arry_aux
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		deca
-		decb
-		psha
-		pshb
-		ldx		#arry_aux
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
-		inca
-		decb
-		psha
-		pshb
-		ldx		#arry_aux
-		pshx
-		clra
-		psha
-		jsr		play_wrt
-		pula
-		pulx
-		pulb
-		pula
-
+		bne		sa_part2
+		%SET_AUX
+		
+		pshy
 		ldy		#arry_aux
 		ldab		#4
 sa_loop		decb
-		bmi
+		bmi		sa_notok
 		pshb
 		ldaa		0,Y
 		ldab		1,Y
-		psha
-		pshb
-		ldx		#arry_pr
-		pshx
-		clra
-		psha
-		jsr		play_src
-		pula
-		pulx
-		pulb
-		pula
+		%IS_PROH
 		pulb
 		bcc		sa_ok
-		inx
-		inx
+		iny
+		iny
 		bra		sa_loop
-		
-				
-		
+
+sa_notok	puly
+		bra		sa_again
+
+sa_ok		puly
+		ldaa		SA_FIL,Y
+		ldab		SA_COL,Y
+		%PROH_POS
+		inc		SA_CARG,Y
+		%SET_POS	#SHI_NP
+		bra		sa_again
+
+sa_part2	pshy
+		ldy		#arry_aux
+		ldab		#4
+sa_loop2	decb
+		bmi		sa_done
+		pshb
+		ldaa		0,Y
+		ldab		1,Y
+		%PROH_POS
+		pulb
+		bra		sa_loop2
+
+sa_done		puly
+		ldaa		SA_FIL,Y
+		ldab		SA_COL,Y
+		%PROH_POS
+		%PROH_PER
+		%SET_POS	#SHI_NP
+		inc		SA_CONT,Y
+		bra		sa_show	
 
 * libero variables temporales
 sa_end		pula
