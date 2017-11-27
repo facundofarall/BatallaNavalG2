@@ -1,0 +1,1136 @@
+		p68h11
+$macros.msa
+
+*************
+* CONSTANTS *
+*************
+P1		EQU		0
+P2		EQU		1
+PN		EQU		2		;cantidad de jugadores
+
+MAX_C		EQU		6
+MIN_C		EQU		1
+MAX_F		EQU		15
+MIN_F		EQU		10		
+
+WAT_NP		EQU		00000011b
+SUB_NP		EQU		01000011b
+SHI_NP		EQU		10000011b
+WATER		EQU		00001000b	;verde
+SUNK_SUB	EQU		01010000b	;bordeaux para submarinos
+HIT		EQU		10110000b	;naranja
+SUNK_SHI	EQU		10010000b	;bordeaux para cargueros
+
+FILA		EQU		6
+COL		EQU		6
+ARRAY_L		EQU		FILA*COL
+NORM		EQU		10
+
+MIN_FIL		EQU		10
+MAX_FIL		EQU		15
+MIN_COL		EQU		1
+MAX_COL		EQU		6	
+
+CONT		EQU		0
+FILA_L		EQU		2
+COL_L		EQU		1
+
+INPUTS		EQU		3
+
+NONE		EQU		-1
+MASK_FIL	EQU		3
+MASK_COL	EQU		2
+COL_CONT	EQU		1
+KB_PRESS	EQU		0
+
+******* Ports ***************************
+
+DDRC		EQU 		$1007   	;data direction register for C
+PIOC    	EQU 		$1002   	;for strobe B assertion change
+PORTCL  	EQU 		$1005  	 	;port C latched
+PORTB   	EQU 		$1004		;port B
+PORTC	 	EQU 		$1003		;rows
+PORTA		EQU		$1000
+
+SHF_LED		EQU		$40
+
+******* Cols and Row Ports **************
+
+ROWS	 	EQU		PORTC   	;outputs
+COLS    	EQU		PORTCL		;inputs
+
+***** Col Mask **************************
+COL0		EQU		00010000b
+	 
+***** Row Masks *************************
+
+FIL0		EQU		00001110b  	;mascaras para manejo de filas
+FIL1		EQU		00001101b
+FIL2		EQU		00001011b
+FIL3		EQU		00000111b
+
+LENGTH		EQU		4		; largo del display
+
+****** Keyboard Mask ********************
+Button_1	EQU		8
+Button_2	EQU		9
+Button_3	EQU		10
+Button_4	EQU		12
+Button_5	EQU		13
+Button_6	EQU		14		
+Button_A	EQU		0	
+Button_B	EQU		1
+Button_C	EQU		2
+Button_D	EQU		4
+Button_E	EQU		5
+Button_F	EQU		6
+B_fire		EQU		11
+B_P1		EQU		3
+B_P2		EQU		7
+B_reset		EQU		15
+
+EOT		EQU		0
+ESP		EQU		$20	
+
+*========================================================
+* El siguiente es un programa de un juego de batalla
+* naval para dos jugadores en el emulador Wookie FX.
+*========================================================
+
+****************
+* MAIN PROGRAM *
+****************
+
+		ORG		$2000
+init		EQU		*
+		lds		#STACKP
+		jsr		initdis		;inicialización de display 7 seg
+		jsr		init_kb		;inicialización de teclado
+		ldx		hitlist
+		pshx				;se envía inicio de arreglo de barcos a poner en 0
+		ldaa		#(HITSIZE*2)
+		psha				;se envía el tamaño del arreglo a limpiar
+		jsr		clrzone
+		ldaa		#P2		;se inicia atacando al jugador 2
+		staa		player		;se inicia con el jugador 1 (atacando al 2)
+
+main		EQU		*
+		jsr		input		;se llama a la subrutina de interfaz de usuario
+		staa		letra_p		;se recibe en AccA la letra jugada (fila) y en AccB el número (columna)
+		stab		num_p		;se guarda la jugada
+
+		ldx		#hitlist
+		pshx				;se envía la posición del primer arreglo de barcos tocados
+		ldaa		letra_p
+		psha				;se envía la letra jugada
+		ldab		num_p
+		pshb				;se envía el número jugado
+		ldaa		player
+		psha				;se envía el jugador a atacar
+		jsr		play_src	;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
+		bcs		next_p		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
+		%CLRST		5		;se limpia el stack
+		
+		ldaa		letra_p
+		psha				;se envía le letra jugada
+		ldab		num_p
+		pshb				;se envía el número jugado
+		ldx		p_board
+		pshx				;se envía la dirección de inicio de los arreglos de tablero
+		ldab		player
+		pshb				;se envía el jugador a atacar
+		jsr		fetchpos
+		%CLRST		4		;se limpia el stack
+		pula				;se toma del stack el dato del byte jugado
+
+		ldx		#hitlist
+		pshx				;se envía inicio del arreglo de barcos atacados
+		psha				;se envía el byte a jugado
+		ldaa		letra_p
+		psha				;se envía le letra jugada
+		ldab		num_p
+		pshb				;se envía el número jugado
+		ldx		p_board
+		pshx				;se envía la dirección de inicio de los arreglos de tablero
+		ldab		player
+		pshb				;se envía el jugador a atacar
+		jsr		gameplay
+		%CLRST		8		;se limpia el stack
+		
+		ldx		#hitlist
+		pshx				;se envía la posición del primer arreglo de barcos tocados
+		ldaa		player
+		psha				;se envía el jugador a atacar
+		jsr		play_cnt	
+		bcs		end_game	;si se recibe el Carry en 1, el jugador de turno ganó
+
+next_p		EQU		*
+		jsr		whoplays	;se recibirá en AccA el jugador a atacar a continuación
+		staa		player		;se habilita la siguiente jugada
+
+		ldx		p_board
+		pshx				;se envía el inicio de las matrices de tableros
+		ldaa		player
+		psha				;se envía el jugador atacado
+		ldx		display
+		pshx				;se envía la matriz de display (destino a copiar)
+		ldaa		#ARRAY_L
+		psha				;se envía el tamaño de la matriz tablero
+		jsr		mirror		;se envía el tablero del jugador atacado al display
+
+		jmp		main
+
+end_game	EQU		*
+*		ldaa		player
+*		psha
+*		jsr		winner
+		bra		end_game
+
+end_loop	EQU		*
+		bra		end_loop
+
+**************
+* SUBRUTINES *
+**************
+*=======================================================================
+* subrutina gameplay
+* Función: Determina si la posición jugada en el juego de batalla naval
+* 	   para Wookie FX fue "agua", "submarion" o "carguero", y toma 
+*	   la decisión de qué hacer al respecto.
+* Recibe: - Dirección arreglo auxiliar de barcos
+*	  - Byte a jugar.
+*	  - FILA del array (En HEX, de $0A (fil.0) en adelante)
+*         - COLUMNA del array (en HEX)
+*         - Dirección de comienzo del arreglo (2 bytes)
+*	  - Número de arreglo (de 0 en adelante) (número de jugador)
+*	TODO POR STACK.
+* Devuelve: parámetro jugado en posición correspondiente.
+* Requiere: 
+*=======================================================================
+gameplay	EQU		*
+		%BACKUP
+		
+		tsx				;se usa el IX como frame pointer
+		ldaa		13,x		;se carga en AccA el byte a analizar
+		anda		#11000000b	;se enmascan los bits 0 a 5, para analizar los más significativos
+
+gp_water	EQU		*
+		bne		gp_sub		;se estudia si era agua
+		%WRITEPOS	#WATER		;se cambia el color en el tablero
+		%RESTORE
+		rts
+
+gp_sub		EQU		*
+		cmpa		#01000000b	;se estudia si era un submarino
+		bne		gp_shi_r
+		%WRITEPOS	#SUNK_SUB	;se cambia el color en el tablero
+		%PLAY_WRT			;se agraga la posición al array de barcos atacados
+		%RESTORE
+		rts
+
+gp_shi_r	EQU		*		;si no era ninguno de los anteriores, es un carguero
+		ldab		11,x
+		cmpb		#MAX_C
+		beq		gp_shi_l	;si está en el borde derecho, se continúa
+		ldab		12,x
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		incb				;se avanza a la derecha
+		pshb				;se envía el num (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de la derecha
+		%CLRST		5
+		bcc		gp_shi_l	;si no había barco atacado en la derecha, se busca la izquierda
+		%WRITEPOS	#SUNK_SHI	
+		inc		11,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		dec		11,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		%RESTORE
+		rts
+
+gp_shi_l	EQU		*
+		ldab		11,x
+		cmpb		#MIN_C
+		beq		gp_shi_u	;si está en el borde izquierdo, se continúa
+		ldab		12,x
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		decb				;se retrocede a la izquierda
+		pshb				;se envía el número (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de la izquierda
+		%CLRST		5
+		bcc		gp_shi_u	;si no había barco atacado a la izquierda, se busca arriba
+		%WRITEPOS	#SUNK_SHI	
+		dec		11,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		inc		11,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		%RESTORE
+		rts
+
+gp_shi_u	EQU		*
+		ldab		12,x
+		cmpb		#MIN_F
+		beq		gp_shi_d	;si está en el borde superior, se continúa
+		ldab		12,x
+		decb				;se va a la posición de arriba
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		pshb				;se envía el num (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de arriba
+		%CLRST		5
+		bcc		gp_shi_d	;si no había barco atacado arriba, se busca abajo
+		%WRITEPOS	#SUNK_SHI	
+		dec		12,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		inc		12,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		%RESTORE
+		rts
+
+gp_shi_d	EQU		*
+		ldab		12,x
+		cmpb		#MAX_F
+		beq		gp_shi_h	;si está en el borde inferior, se continúa
+		ldab		12,x
+		incb				;se va a la posición de abajo
+		pshb				;se envía la letra (fila)
+		ldab		11,x
+		pshb				;se envía el num (columna)
+		ldy		14,x
+		pshy				;se envía el inicio del arreglo de barcos atacados
+		ldab		8,x
+		pshb				;se envía el jugador atacado
+		jsr		play_src	;se busca la posición de abajo
+		%CLRST		5
+		bcc		gp_shi_h	;si no había barco atacado abajo, el carguero está tocado
+		%WRITEPOS	#SUNK_SHI	
+		inc		12,x
+		%WRITEPOS	#SUNK_SHI	;se "hunde" a TODO el carguero
+		dec		12,x		;se recupera el dato
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		%RESTORE
+		rts
+
+gp_shi_h	EQU		*
+		%WRITEPOS	#HIT		;se marca al carguero como tocado
+		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		%RESTORE
+		rts
+
+*====================================================================================
+* Subrutina "MIRROR"
+*
+* Descripción: 	Esta subrutina copia el contenido de las posiciones de un array fuente
+*		a un espacio de memoria destino.
+* Parámetros de entrada:
+*		- Dirección de comienzo de array FUENTE
+*		- Número de arreglo contenido en otro arreglo (número de jugador)(0 en adelante)
+*		- Dirección de DESTINO de la copia 
+*		- Número de posiciones a copiar (un byte, hasta 255 posiciones.)
+*		- Número de arreglo (de 0 en adelante) (número de jugador)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*	Se destruirá el dato de la dirección del array de origen.
+*		
+* Parámetros de salida: NINGUNO
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 6 posiciones
+*
+*====================================================================================
+
+mirror		EQU		*	
+	
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		11,x		;cargo número de jugador
+		ldab		8,x		;cargo longitud de la copia (del array a copiar)
+		mul				;obtengo offset de jugador
+		addd		12,x		;sumo offset de jugador
+		std		12,x		;guardo la dirección con offset del array fuente
+
+		ldaa		12,x		;cargo longitud de copia en contador
+		beq		mi_end		;si es cero, vuelvo desde subrutina
+		ldy		9,x		;cargo índice a destino de la copia.
+		ldx		12,x		;cargo índice a array origen de copia.
+
+mi_loop		EQU		*
+
+		ldab		0,x		;cargo byte a copiar
+		stab		0,y		;copio byte en destino
+		inx				;siguiente byte
+		iny				;siguiente byte
+		deca				;decremento contador
+		bne		mi_loop
+
+mi_end		EQU		*
+
+		%RESTORE
+	
+		rts	
+		
+ 				
+*====================================================================================
+* Subrutina "FETCHPOS"
+*
+* Descripción: 	La subrutina busca en un array de tres dimensiones una 
+*               determinada posición, y devuelve el byte que se encuentra
+*		en esa posición por stack. Subrutina limitada a longitud
+*		de elementos del array de un byte.
+*
+* Parámetros de entrada:
+*		- FILA del array (En HEX, de $0A (fil.0) en adelante)
+*		- COLUMNA del array (en HEX)
+*		- Dirección de comienzo del arreglo (2 bytes)
+*		- Número de arreglo (de 0 en adelante) (número de jugador)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado.
+*	Se destruirá el dato del índice al arreglo.
+*		
+* Parámetros de salida:
+*		- Byte encontrado en esa posición (se devuelve por stack)
+*
+*
+* Consideraciones:
+*		- Antes de recuperar el byte en stack se debe normalizar el mismo
+*		  en 4 posiciones (4 bytes)
+*		- Requiere definición de constante "ARRAY_L"
+*
+*====================================================================================
+
+fetchpos	EQU		*
+
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		8,x		;cargo numero de jugador
+		ldab		#ARRAY_L	;cargo longitud del arreglo (MAX 255 bytes)
+		mul				;obtengo offset de jugador
+		addd		9,x		;sumo offset de jugador a top of array
+		std		9,x		;obtengo direccion al arreglo del jugador
+
+		ldaa		12,x		;cargo coordenada letra (FILA)
+		ldab		#NORM		;cargo valor de normalización de filas
+		sba				;obtengo numero de fila
+		ldab		#COL		;cargo longitud de fila
+		mul				;obtengo offset de fila
+		addd		9,x		;sumo offset de fila a la dirección del arreglo del jugador
+		std		9,x		;obtengo dirección a la fila que se desea
+
+		ldab		11,x		;cargo coordenada (offset) de columna
+		decb				;normalizo offset de columna
+		clra				;borro AccA para tener el valor de AccB en AccD
+		addd		9,x		;sumo offset de columna a la dirección temporal
+		std		9,x		;guardo en stack la dirección del byte a consultar
+
+		ldy		9,x		;cargo en IY la dirección del byte que se desea obtener
+		ldaa		0,y		;cargo el byte a devolver en AccA
+		staa		12,x		;guardo el byte a devolver en stack
+		%RESTORE
+		
+		rts
+		
+		
+
+*====================================================================================
+* Subrutina "WRITEPOS"
+*
+* Descripción: 	La subrutina busca en un array de tres dimensiones una 
+*               determinada posición, y escribe en la misma un byte de
+*		datos que será recibido como parámetro de entrada por stack.
+*
+* Parámetros de entrada:
+*		- BYTE a escribir en la posición indicada
+*		- FILA del array (En HEX, de $0A (fil.0) en adelante)
+*		- COLUMNA del array (en HEX)
+*		- Dirección de comienzo del arreglo (2 bytes)
+*		- Número de arreglo (de 0 en adelante) (número de jugador)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*	Se destruirá el dato del índice al arreglo.
+*		
+* Parámetros de salida: NINGUNO
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 6 posiciones
+*		- Requiere definición de constante "ARRAY_L"
+*
+*====================================================================================
+
+writepos	EQU		*
+
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		8,x		;cargo numero de jugador
+		ldab		#ARRAY_L	;cargo longitud del arreglo (MAX 255 bytes)
+		mul				;obtengo offset de jugador
+		addd		9,x		;sumo offset de jugador a top of array
+		std		9,x		;obtengo direccion al arreglo del jugador
+
+		ldaa		12,x		;cargo coordenada letra (FILA)
+		ldab		#NORM		;cargo valor de normalización de filas
+		sba				;obtengo numero de fila
+		ldab		#COL		;cargo longitud de fila
+		mul				;obtengo offset de fila
+		addd		9,x		;sumo offset de fila a la dirección del arreglo del jugador
+		std		9,x		;obtengo dirección a la fila que se desea
+
+		ldab		11,x		;cargo coordenada (offset) de columna
+		decb				;normalizo offset de columna
+		clra				;borro AccA para tener el valor de AccB en AccD
+		addd		9,x		;sumo offset de columna a la dirección temporal
+		std		9,x		;guardo en stack la dirección del byte a consultar
+
+		ldy		9,x		;cargo en IY la dirección donde se desea escribir
+		ldaa		13,x		;cargo en AccA el byte que se quiere escribir en el arreglo
+		staa		0,y		;escribo el byte sobre el arreglo
+		%RESTORE
+		
+		rts
+*====================================================================================
+* Subrutina "PLAY_SRC"
+*
+* Descripción: 	Esta subrutina busca dos bytes consecutivos (posicion jugada) dentro de un arreglo.
+*		El valor $00 podrá estar en el array solo como terminador
+* Parámetros de entrada:
+*		- Byte1 a buscar (en este caso, n° fila)
+*		- Byte2 a buscar (en este caso, n° columna)
+*		- Dirección de inicio del array
+*		- Número de jugador (0 o mayor)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*		
+* Parámetros de salida:
+*		- Carry en 1, si se encontró la posición.
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 5 posiciones antes de
+*		  recuperar el parámetro de salida.
+*
+*====================================================================================
+
+play_src	EQU		*		
+			
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		8,x		;cargo número de array (jugador)
+		ldab		#HITSIZE	;cargo tamaño de array de 1 jugador
+		mul				;obtengo offset de jugador
+		addd		9,x		;sumo el offset de jugador al puntero al array
+		xgdy				;obtengo puntero al array del jugador deseado
+
+ps_loop		EQU		*
+
+		ldaa		0,y		;cargo byte1 a comparar
+		beq		ps_ntfnd	;si encontré el terminador, el valor requerido no está en el array
+
+		cmpa		12,x		;comparo con el byte1 a buscar
+		beq		ps_next		;si coinciden, busco el byte 2
+		iny				;me posiciono sobre siguiente byte1 a comparar
+		iny
+		bra		ps_loop		;vuelvo a comparar
+
+ps_next		EQU		*
+
+		ldab		1,y		;cargo byte a continuación del anterior
+		iny				;me posiciono sobre siguiente byte1 a comparar
+		iny
+		cmpb		11,x		;comparo con byte2
+		bne		ps_loop		;si no son iguales, sigo buscando
+		sec				;set del carry para informar que se encontró el valor
+		bra		ps_end
+			
+ps_ntfnd	EQU		*
+
+		clc				;carry en 0 para informar que no se encontró el valor
+
+ps_end		EQU		*
+		
+		%RESTORE
+
+		rts
+
+
+
+			
+
+			
+
+*====================================================================================
+* Subrutina "PLAY_CNT"
+*
+* Descripción: 	Esta subrutina cuenta la cantidad de datos de dos bytes que se encuentran en una
+*		determinada zona de memoria configurada como array. Se supone que $00 no es un dato presente en dicho array, 
+*		usándose solamente como terminador del mismo.
+*
+* Parámetros de entrada:
+*		- Dirección de inicio del array
+*		- Número de jugador (0 o mayor)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*		
+* Parámetros de salida:
+*		- Cantidad de datos de dos bytes encontrados, por stack (máximo 255 datos).
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 2 posiciones antes de
+*		  recuperar el parámetro de salida.
+*
+*====================================================================================
+
+play_cnt	EQU		*
+
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		8,x		;cargo número de array (jugador)
+		ldab		#HITSIZE	;cargo tamaño de array de 1 jugador
+		mul				;obtengo offset de jugador
+		addd		9,x		;sumo el offset de jugador al puntero al array
+		xgdy				;obtengo puntero al array del jugador deseado
+		clra				;inicializo contador
+			
+pc_loop		EQU		*		
+			
+		ldab		0,y		;cargo byte a comparar
+		beq		pc_end		;si es terminador, terminé de buscar
+		iny				;si no es terminador, me posiciono sobre siguiente dato de 
+		iny				;2 bytes
+		inca				;incremento contador
+		bra		pc_loop		;vuelvo a comparar
+			
+pc_end		EQU		*	
+			
+		staa		10,x		;devuelvo valor por stack
+		%RESTORE
+		
+		rts
+
+
+*====================================================================================
+* Subrutina "PLAY_WRT"
+*
+* Descripción: 	Esta subrutina escribe dos bytes distintos (en este caso, la posición 
+*		jugada, compuesta de una letra y un número) en la primera posición "libre"
+*		de un array y en la siguiente. La subrutina escribirá los datos desde la primera posición con ceros
+*		que encuentre en el array, por lo que el mismo NO podrá contener el dato "$00" en ninguno
+*		de sus bytes, caso contrario la subrutina lo interpretará como vacío y sobreescribirá información. Se
+*		supone que el array tendrá por lo menos, dos posiciones libres.
+*
+* Parámetros de entrada:
+*		- Primer byte a escribir (en este caso, fila jugada)
+*		- Byte a escribir a continuación del primero (en este caso, columna jugada)
+*		- Dirección de inicio del array en el que se va a escribir
+*		- Número de jugador (0 o mayor)
+*
+*	Todos los parámetros se reciben por stack en el orden indicado. 
+*		
+* Parámetros de salida: NINGUNO
+*	
+*
+* Consideraciones:
+*		- Luego de invocada, se debe normalizar el stack en 5 posiciones
+*
+*====================================================================================
+
+play_wrt	EQU		*
+
+		%BACKUP
+		tsx				;creo frame pointer
+		ldaa		8,x		;cargo número de array (jugador)
+		ldab		#HITSIZE	;cargo tamaño de array de 1 jugador
+		mul				;obtengo offset de jugador
+		addd		9,x		;sumo el offset de jugador al puntero al array
+		xgdy				;obtengo puntero al array del jugador deseado
+
+
+pw_loop		EQU		*
+
+		ldaa		0,y		;cargo byte del array
+		beq		pw_end		;si es cero, entonces escribo los datos
+		iny				;si no es cero, me posiciono sobre la siguiente posición
+		bra		pw_loop		;vuelvo a buscar ceros
+
+pw_end		EQU		*
+
+		ldaa		12,x		;cargo primer byte a escribir
+		staa		0,y		;guardo primer byte en memoria
+		iny				;me posiciono en el siguiente byte
+		ldaa		11,x		;cargo segundo byte a escribir
+		staa		0,y		;guardo segundo byte en memoria
+		%RESTORE
+
+		rts
+
+***************************************************************************************
+*Subrutina "CLRZONE"
+*Función: "borra" (guarda ceros) una determinada zona de memoria.
+*         
+*
+* Parámetros de entrada: -Dirección de comienzo de sección a borrar (por stack)
+*			 -Longitud de zona de memoria (por stack)
+*			
+*
+* Parámetros de salida: Ninguno
+*
+* consideraciones: 
+*		   - Incluir macros "%BACKUP" y "%RESTORE".
+*		  			
+***************************************************************************************	
+clrzone		EQU	*
+
+		%BACKUP				;backup de registros en stack
+
+		tsx
+		ldaa	8,x			;cargo contador con longitud de zona a borrar
+		ldx	9,x			;cargo puntero zona de memoria a borrar
+		ldab	$00			;cargo el cero
+clr_loop	EQU	*
+		stab	0,x			;guardo caracter en posicion del array
+		inx				;siguiente posición	
+		deca				;decremento contador
+		bne	clr_loop		;si no es cero, escribo en la posición siguiente.
+
+		%RESTORE			:restauro backup en registros
+
+		rts
+
+*---------------------------------------
+* WhoPlays: subrutina para ver que 
+*           jugador juega
+*---------------------------------------
+
+whoplays	EQU		*
+
+wait_ply	jsr		read_kb
+		tsta
+		bmi		wait_ply
+		cmpa		#B_P1
+		beq		play_p1
+		cmpa		#B_P2
+		bne		wait_ply
+		ldaa		#P2
+		bra		ply_end
+
+play_p1		ldaa		#P1
+ply_end		rts		
+
+*---------------------------------------
+* Input: subrutina que devuelve
+*        entrada para la batalla naval
+* AccA: Fila de la posicion jugada
+* AccB: Columna de la posicion jugada
+*---------------------------------------
+
+input		EQU		*
+
+* back up de registros
+		pshx
+		pshy
+
+* creo variables locales
+		psha
+		psha
+		psha
+
+* inicializo framepointer
+		tsy
+
+* prendo el led
+		%LED_INV
+
+* inicializo el contador
+inp_rest	ldaa		#INPUTS
+		staa		CONT,Y
+		
+* limpio el display
+		ldx		#string
+		ldaa		#4
+		ldab		#ESP
+		jsr		clrarray
+
+		jsr		clr_dis
+
+		ldaa		#$FF
+		staa		buffer
+
+* lectura de teclado
+wait_kb		jsr		read_kb
+		tsta
+		bmi		wait_kb
+		cmpa		buffer
+		beq		wait_kb
+		staa		buffer
+		
+		cmpa		#B_reset
+		beq		inp_rest
+
+		dec		CONT,Y
+		beq		chk_fire
+		psha
+		ldx		#kb_value
+		tab
+		abx
+		ldaa		0,X		
+		pshy
+		ldab		CONT,Y
+		aby
+		staa		0,Y
+		puly
+
+		pulb
+		jsr		to_ascii
+		tba
+		
+		ldx		#string
+		jsr		sh_value
+
+		ldx		#string
+		jsr		show
+
+		bra		wait_kb
+
+chk_fire	cmpa		#B_fire
+		bne		inp_rest
+		ldaa		FILA_L,Y
+		cmpa		#MIN_FIL
+		blo		inp_rest
+		cmpa		#MAX_FIL
+		bhi		inp_rest
+		ldaa		COL_L,Y
+		cmpa		#MIN_COL
+		blo		inp_rest
+		cmpa		#MAX_COL
+		bhi		inp_rest
+
+* apago el led
+		%LED_INV
+
+* libero variables locales
+		pula
+		pula
+		pula
+
+return		ldaa		FILA_L,Y
+		ldab		COL_L,Y		
+
+* restore de registros
+		puly
+		pulx
+
+		rts
+
+*------------------------------------
+* Show: Por IX direccion de string de
+*	4 caracteres para imprimir
+*------------------------------------
+
+show		EQU		*
+
+* back up de registros
+		pshx
+		pshb
+		psha
+
+* inicializo contador de posiciones
+		ldab		#LENGTH
+		
+* loop para enviar a cada posicion
+sh_loop		decb
+		bmi		sh_end		; si no pase por todas las posiciones
+		ldaa		0,X		; tomo del string el caracter
+		jsr		outchar		; y lo imprimo en la posicion actual
+		inx
+		bra		sh_loop
+
+* restore de registros				
+sh_end		pula
+		pulb
+		pulx
+		rts
+
+*----------------------------------------------
+* read_kb: AccA: tecla presionada
+*	   o -1
+*----------------------------------------------
+
+read_kb		EQU		*
+
+* back up de registros
+		pshx
+		pshb
+
+* creo espacio para variables locales
+		%MALLOC		1		; variable mascara de filas
+		%MALLOC		1		; variable mascara de columnas
+		%MALLOC		1		; variable contador de columnas
+		%MALLOC		1		; variable contador de tecla
+
+* inicializacion de variables
+		tsx				; framepointer para acceder a locales
+		ldab		#LENGTH		; contador de fila
+		ldaa		#FIL0		; mascara para la fila cero
+		staa		MASK_FIL,X	
+		ldaa		#COL0		; mascara para la columna cero
+		staa		MASK_COL,X
+		clra				; contador de columna
+		staa		COL_CONT,X
+		staa		KB_PRESS,X	; variable con numero de tecla
+
+* loop para barrer y mirar teclado matricial
+kb_loop		ldaa		#NONE
+		decb				
+		bmi		kb_end		; me fijo si recorrio todas las filas
+		ldaa		MASK_FIL,X	; enmascaro la siguiente fila
+		staa		ROWS
+		sec				; carry para rotacion de byte
+		rola				
+		staa		MASK_FIL,X	; cambio variable mascara para la proxima fila
+
+		ldaa		#LENGTH
+		staa		COL_CONT,X
+		ldaa		#COL0		; inicializo variable para barrer
+		staa		MASK_COL,X	; la columna
+
+kb_col		dec		COL_CONT,X	; me fijo si barrio todas las columnas
+		bmi		kb_loop
+		ldaa		COLS		; leo el puerto de columnas
+		anda		MASK_COL,X	; enmascaro columna
+		beq		kb_hit		; si es nulo apretaron un boton
+		lsla				; cambio mascara para proxima columna
+		staa		MASK_COL,X
+		inc		KB_PRESS,X	; incremento numero de tecla
+		bra		kb_col
+
+kb_hit		ldaa		KB_PRESS,X	; apretaron una tecla, lo comparo
+		cmpa		kb_buff		; con la que fue apretada antes
+		bne		kb_end		; aviso por led
+
+kb_none		ldaa		#NONE		; en caso de que no apreten nada
+
+kb_end		staa		kb_buff		; actualizo variable
+			
+* elimino variables locales
+		%RELMEM		1
+		%RELMEM		1
+		%RELMEM		1
+		%RELMEM		1
+
+* restore de registros
+		pulb
+		pulx
+		
+		rts
+
+*----------------------------------------------
+* init_kb: subrutina para inicializar teclado
+*----------------------------------------------
+
+init_kb		EQU		*
+
+* back up de registros
+		psha
+
+* inicializacion de teclado		
+		ldaa		#NONE
+		staa		kb_buff
+
+* restore de registros
+		pula
+		rts
+
+*--------------------------------
+* Inicializa display (y teclado)
+*--------------------------------
+
+initdis		EQU		*
+	
+		psha
+
+		ldaa		#$0F       ;set for input/output
+		staa		DDRC       ;C output
+		ldaa 		PIOC       ;get current value
+		anda 		#$FE       ;reset bit 0 to 0
+		staa		PIOC       ;send it out
+	
+		pula
+		rts
+
+*--------------------------------------------------------------
+* sh_value: toma un string, desplaza los caracteres a izquierda
+*           y agrega un nuevo caracter
+*           IX: direccion del string
+*           AccA: nuevo valor
+*--------------------------------------------------------------
+
+sh_value	EQU		*
+
+* back up de registros
+		pshx
+		pshb
+
+* loop para desplazar caracteres
+v_loop		ldab		1,X		;tomo elemento siguiente en string
+		beq		v_end
+		stab		0,X		;y lo guardo en posicion actual
+		inx
+		bra		v_loop		
+
+v_end		staa		0,X		;ingresa nuevo caracter en cadena desplazada
+
+* restore de registros
+		pulb
+		pulx
+		rts
+
+*----------------------------------------------
+* toAscii: toma numero de boton del teclado
+*	   y devuelve su correspondiente en
+*          ascii
+*          toma  AccB: valor del boton
+*	   devuelve AccB: ascii
+*----------------------------------------------
+
+to_ascii	EQU		*
+
+* back up de registros
+		pshx
+
+* inicializacion de variables
+		ldx		#kb_ascii	; apunto a string con caracteres asignados por tecla
+		abx				; me muevo en string con indice y recupero segun tecla presionada
+		ldab		0,X		
+
+* restore de registros
+		pulx
+		rts
+
+*--------------------------------
+*Outchar: ACCA: Carácter a enviar
+*	    ACCB: Posición (0-3)
+*--------------------------------
+outchar		EQU		*
+	
+		stab 		PORTCL  	;set the position 
+		staa		PORTB		;set the character
+	
+		rts
+
+*-------------------------
+* clr_dis: Limpia display
+*-------------------------
+
+clr_dis		EQU		*
+
+* hago back up de registros
+		pshb
+		psha
+
+* inicializo el contador de posiciones
+		ldab		#LENGTH
+
+* loop para limpiar cada posicion
+clrloop		decb
+		bmi		clr_end		; si no pase por todas las posiciones
+		ldaa		#ESP		; cargo en esta posicion espacio blanco
+		jsr		outchar		; y lo envio
+		bra		clrloop		
+
+* restore de registros
+clr_end		pula
+		pulb
+		rts
+
+*-------------------------------------------------------
+* clrarray: subrutina para limpiar un array dado
+* parametros: IX direccion del array
+*             AccA cantidad de elementos del array
+*	      AccB caracter a poner
+*-------------------------------------------------------
+
+clrarray	EQU		*
+		
+cra_loop	deca				;contador con cantidad de elementos a limpiar
+		beq		cra_end
+		stab		0,X		;reemplazar elemento por caracter a poner
+		inx
+		bra		cra_loop
+		
+cra_end		stab		0,X
+		rts
+
+*************
+* VARIABLES *
+*************
+***STACK***
+		ORG		$4000
+stack		RMB		500
+STACKP		EQU		*-1
+
+***MAIN VARIABLES***
+player		RMB		1		;variable de jugador
+letra_p		RMB		1
+num_p		RMB		1
+
+***KEYBOARD VARIABLES***
+kb_buff		RMB		1
+buffer		RMB		1
+
+string		FCC		'    '
+		FCB		0
+
+kb_value	FCB		10,11,12,0,13,14,15,0,1,2,3,0,4,5,6
+
+kb_ascii	FCC		'ABC DEF 123 456'
+
+***ARREGLO DE BARCOS TOCADOS***
+SUB		EQU 		3
+CAR		EQU 		3
+EL_SIZE 	EQU 		2
+CANTIDAD 	EQU 		SUB*1+CAR*2
+HITSIZE		EQU		EL_SIZE*CANTIDAD+1
+hitlist		RMB 		HITSIZE*2
+
+***MATRICES DE TABLERO DE CADA JUGADOR***
+		ORG		$5000
+p_board		FCB		SHI_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP,SUB_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,SHI_NP,SHI_NP
+		FCB		SUB_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP,WAT_NP
+
+		ORG		$5100
+		FCB		WAT_NP,SHI_NP,WAT_NP,SHI_NP,SHI_NP,WAT_NP
+		FCB		WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,SHI_NP,SHI_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,SUB_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP
+
+***MATRIZ DE DISPLAY***
+		ORG		$5F00
+display		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+
+		
+		END

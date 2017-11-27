@@ -106,7 +106,7 @@ init		EQU		*
 		lds		#STACKP
 		jsr		initdis		;inicialización de display 7 seg
 		jsr		init_kb		;inicialización de teclado
-		ldx		hitlist
+		ldx		#hitlist
 		pshx				;se envía inicio de arreglo de barcos a poner en 0
 		ldaa		#(HITSIZE*2)
 		psha				;se envía el tamaño del arreglo a limpiar
@@ -135,7 +135,7 @@ main		EQU		*
 		psha				;se envía le letra jugada
 		ldab		num_p
 		pshb				;se envía el número jugado
-		ldx		p_board
+		ldx		#p_board
 		pshx				;se envía la dirección de inicio de los arreglos de tablero
 		ldab		player
 		pshb				;se envía el jugador a atacar
@@ -150,12 +150,22 @@ main		EQU		*
 		psha				;se envía le letra jugada
 		ldab		num_p
 		pshb				;se envía el número jugado
-		ldx		p_board
+		ldx		#p_board
 		pshx				;se envía la dirección de inicio de los arreglos de tablero
 		ldab		player
 		pshb				;se envía el jugador a atacar
 		jsr		gameplay
 		%CLRST		8		;se limpia el stack
+
+		ldx		#p_board
+		pshx				;se envía el inicio de las matrices de tableros
+		ldaa		player
+		psha				;se envía el jugador atacado
+		ldx		#display
+		pshx				;se envía la matriz de display (destino a copiar)
+		ldaa		#ARRAY_L
+		psha				;se envía el tamaño de la matriz tablero
+		jsr		mirror		;se envía el tablero del jugador atacado al display
 		
 		ldx		#hitlist
 		pshx				;se envía la posición del primer arreglo de barcos tocados
@@ -168,22 +178,13 @@ next_p		EQU		*
 		jsr		whoplays	;se recibirá en AccA el jugador a atacar a continuación
 		staa		player		;se habilita la siguiente jugada
 
-		ldx		p_board
-		pshx				;se envía el inicio de las matrices de tableros
-		ldaa		player
-		psha				;se envía el jugador atacado
-		ldx		display
-		pshx				;se envía la matriz de display (destino a copiar)
-		ldaa		#ARRAY_L
-		psha				;se envía el tamaño de la matriz tablero
-		jsr		mirror		;se envía el tablero del jugador atacado al display
-
 		jmp		main
 
 end_game	EQU		*
-		ldaa		player
-		psha
-		jsr		winner
+*		ldaa		player
+*		psha
+*		jsr		winner
+		bra		end_game
 
 end_loop	EQU		*
 		bra		end_loop
@@ -254,7 +255,7 @@ gp_shi_r	EQU		*		;si no era ninguno de los anteriores, es un carguero
 gp_shi_l	EQU		*
 		ldab		11,x
 		cmpb		#MIN_C
-		beq		gp_shi_l	;si está en el borde izquierdo, se continúa
+		beq		gp_shi_u	;si está en el borde izquierdo, se continúa
 		ldab		12,x
 		pshb				;se envía la letra (fila)
 		ldab		11,x
@@ -278,7 +279,7 @@ gp_shi_l	EQU		*
 gp_shi_u	EQU		*
 		ldab		12,x
 		cmpb		#MIN_F
-		beq		gp_shi_u	;si está en el borde superior, se continúa
+		beq		gp_shi_d	;si está en el borde superior, se continúa
 		ldab		12,x
 		decb				;se va a la posición de arriba
 		pshb				;se envía la letra (fila)
@@ -302,7 +303,7 @@ gp_shi_u	EQU		*
 gp_shi_d	EQU		*
 		ldab		12,x
 		cmpb		#MAX_F
-		beq		gp_shi_u	;si está en el borde inferior, se continúa
+		beq		gp_shi_h	;si está en el borde inferior, se continúa
 		ldab		12,x
 		incb				;se va a la posición de abajo
 		pshb				;se envía la letra (fila)
@@ -675,6 +676,40 @@ pw_end		EQU		*
 		%RESTORE
 
 		rts
+
+***************************************************************************************
+*Subrutina "CLRZONE"
+*Función: "borra" (guarda ceros) una determinada zona de memoria.
+*         
+*
+* Parámetros de entrada: -Dirección de comienzo de sección a borrar (por stack)
+*			 -Longitud de zona de memoria (por stack)
+*			
+*
+* Parámetros de salida: Ninguno
+*
+* consideraciones: 
+*		   - Incluir macros "%BACKUP" y "%RESTORE".
+*		  			
+***************************************************************************************	
+clrzone		EQU	*
+
+		%BACKUP				;backup de registros en stack
+
+		tsx
+		ldaa	8,x			;cargo contador con longitud de zona a borrar
+		ldx	9,x			;cargo puntero zona de memoria a borrar
+		ldab	$00			;cargo el cero
+clr_loop	EQU	*
+		stab	0,x			;guardo caracter en posicion del array
+		inx				;siguiente posición	
+		deca				;decremento contador
+		bne	clr_loop		;si no es cero, escribo en la posición siguiente.
+
+		%RESTORE			:restauro backup en registros
+
+		rts
+
 *---------------------------------------
 * WhoPlays: subrutina para ver que 
 *           jugador juega
@@ -1010,11 +1045,11 @@ clr_dis		EQU		*
 		ldab		#LENGTH
 
 * loop para limpiar cada posicion
-clr_loop	decb
+clrloop		decb
 		bmi		clr_end		; si no pase por todas las posiciones
 		ldaa		#ESP		; cargo en esta posicion espacio blanco
 		jsr		outchar		; y lo envio
-		bra		clr_loop		
+		bra		clrloop		
 
 * restore de registros
 clr_end		pula
@@ -1080,7 +1115,6 @@ p_board		FCB		SHI_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP,SUB_NP
 		FCB		SUB_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
 		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP,WAT_NP
 
-		ORG		$5100
 		FCB		WAT_NP,SHI_NP,WAT_NP,SHI_NP,SHI_NP,WAT_NP
 		FCB		WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
 		FCB		WAT_NP,WAT_NP,WAT_NP,SHI_NP,SHI_NP,WAT_NP
