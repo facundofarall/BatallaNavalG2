@@ -104,21 +104,23 @@ ESP		EQU		$20
 		ORG		$2000
 init		EQU		*
 		lds		#STACKP
+
 		jsr		initdis		;inicialización de display 7 seg
 		jsr		init_kb		;inicialización de teclado
+
 		ldx		#hitlist
 		pshx				;se envía inicio de arreglo de barcos a poner en 0
 		ldaa		#(HITSIZE*2)
 		psha				;se envía el tamaño del arreglo a limpiar
 		jsr		clrzone
 		%CLRST		3
-		ldaa		#P2		;se inicia atacando al jugador 2
-		staa		player		;se inicia con el jugador 1 (atacando al 2)
 
 main		EQU		*
+* ELEGIR JUGADOR
 		jsr		whoplays	;se recibirá en AccA el jugador a atacar a continuación
 		staa		player		;se habilita la siguiente jugada
 
+* ENVIAR TABLERO DE JUGADOR A ATACAR A DISPLAY
 		ldx		#p_board
 		pshx				;se envía el inicio de las matrices de tableros
 		ldaa		player
@@ -130,10 +132,12 @@ main		EQU		*
 		jsr		mirror		;se envía el tablero del jugador atacado al display
 		%CLRST		6
 
+* INGRESAR POSICIÓN A ATACAR
 		jsr		input		;se llama a la subrutina de interfaz de usuario
 		staa		letra_p		;se recibe en AccA la letra jugada (fila) y en AccB el número (columna)
 		stab		num_p		;se guarda la jugada
 
+* VERIFICAR QUE NO SEA POSICIÓN DE BARCO YA ATACADA
 		ldaa		letra_p
 		psha				;se envía la letra jugada
 		ldab		num_p
@@ -145,7 +149,14 @@ main		EQU		*
 		jsr		play_src	;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
 		%CLRST		5		;se limpia el stack
 		bcs		main		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
-		
+
+* MANDAR QUE JUGADOR ESTÁ JUGANDO AL DISPLAY
+		ldaa		player
+		psha				;se envía el jugador que está siendo atacado
+		jsr		turn
+		%CLRST		1
+
+* BUSCAR EL BYTE ATACADO EN EL TABLERO DEL JUGADOR ATACADO
 		ldaa		letra_p
 		psha				;se envía le letra jugada
 		ldab		num_p
@@ -158,6 +169,7 @@ main		EQU		*
 		%CLRST		4		;se limpia el stack
 		pula				;se toma del stack el dato del byte jugado
 
+* ATACAR
 		ldx		#hitlist
 		pshx				;se envía inicio del arreglo de barcos atacados
 		psha				;se envía el byte a jugado
@@ -172,6 +184,7 @@ main		EQU		*
 		jsr		gameplay
 		%CLRST		8		;se limpia el stack
 
+* ACTUALIZAR DISPLAY CON LA POSICIÓN YA ATACADA
 		ldx		#p_board
 		pshx				;se envía el inicio de las matrices de tableros
 		ldaa		player
@@ -182,7 +195,8 @@ main		EQU		*
 		psha				;se envía el tamaño de la matriz tablero
 		jsr		mirror		;se envía el tablero del jugador atacado al display
 		%CLRST		6
-		
+
+* CONTAR BARCOS ATACADOS A VER SI EL JUGADOR GANÓ		
 		ldx		#hitlist
 		pshx				;se envía la posición del primer arreglo de barcos tocados
 		ldaa		player
@@ -195,6 +209,7 @@ main		EQU		*
 
 		jmp		main
 
+* MANDAR MENSAJE A DISPLAY DE QUIÉN GANÓ
 end_game	EQU		*
 		ldaa		player
 		psha
@@ -1099,23 +1114,47 @@ cra_end		stab		0,X
 *=============================================
 
 		
-winner		equ	*
+winner		EQU		*
 		%BACKUP
 		tsx
-		ldaa	8,x	;recupero parametro enviado por stack
-		beq	win2
+		ldaa		8,x	;recupero parametro enviado por stack
+		beq		win2
 
-win1		equ	*
-		ldx	#string1
-		jsr	show
-		bra	end
+win1		EQU		*
+		ldx		#string1
+		jsr		show
+		bra		end
 
-win2		equ	*
-		ldx	#string2
-		jsr	show
+win2		EQU		*
+		ldx		#string2
+		jsr		show
 	
-end		equ	*
+end		EQU		*
 		%RESTORE
+		rts
+
+*=============================================
+*Subrutina turn: Recibe por stack un 1 si
+*juega el player 1 y un 0 si juega el player 2.
+*=============================================
+
+turn		EQU		*
+		%BACKUP
+		tsx
+		ldaa		8,x
+		beq		p2_t
+
+p1_t		EQU		*
+		ldx		#play1
+		jsr		show
+		bra		end
+	
+p2_t		EQU		*
+		ldx		#play2
+		jsr		show
+
+end_t		EQU		*
+		%RESTORE	
 		rts
 
 *************
@@ -1150,28 +1189,32 @@ CANTIDAD 	EQU 		SUB*1+CAR*2
 HITSIZE		EQU		EL_SIZE*CANTIDAD+1
 hitlist		RMB 		HITSIZE*2
 
-***END VARIABLES***
-string1		fcc	'WIN1'
-		fcb	00
+***DISPLAY MESSAGES VARIABLES***
+string1		FCC	'WIN1'
+		FCB	00
+string2		FCC	'WIN2'
+		FCB	00
 
-string2		fcc	'WIN2'
-		fcb	00
+play1		FCC	'P1'
+		FCB	0,0
+play2		FCC	'P2'
+		FCB	0,0
 
 ***MATRICES DE TABLERO DE CADA JUGADOR***
 		ORG		$5000
-p_board		FCB		SHI_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP,SUB_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,SHI_NP,SHI_NP
-		FCB		SUB_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP,WAT_NP
-
-		FCB		WAT_NP,SHI_NP,WAT_NP,SHI_NP,SHI_NP,WAT_NP
+p_board		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP
 		FCB		WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,SHI_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,SHI_NP,WAT_NP,SUB_NP,WAT_NP,SUB_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,SUB_NP,WAT_NP
+
+		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,SUB_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP
 		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,SUB_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP
+		FCB		SHI_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,SUB_NP
 
 ***MATRIZ DE DISPLAY***
 		ORG		$5F00
