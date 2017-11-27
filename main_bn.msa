@@ -115,6 +115,19 @@ init		EQU		*
 		staa		player		;se inicia con el jugador 1 (atacando al 2)
 
 main		EQU		*
+		jsr		whoplays	;se recibirá en AccA el jugador a atacar a continuación
+		staa		player		;se habilita la siguiente jugada
+
+		ldx		#p_board
+		pshx				;se envía el inicio de las matrices de tableros
+		ldaa		player
+		psha				;se envía el jugador atacado
+		ldx		#display
+		pshx				;se envía la matriz de display (destino a copiar)
+		ldaa		#ARRAY_L
+		psha				;se envía el tamaño de la matriz tablero
+		jsr		mirror		;se envía el tablero del jugador atacado al display
+
 		jsr		input		;se llama a la subrutina de interfaz de usuario
 		staa		letra_p		;se recibe en AccA la letra jugada (fila) y en AccB el número (columna)
 		stab		num_p		;se guarda la jugada
@@ -128,7 +141,7 @@ main		EQU		*
 		ldaa		player
 		psha				;se envía el jugador a atacar
 		jsr		play_src	;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
-		bcs		next_p		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
+		bcs		main		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
 		%CLRST		5		;se limpia el stack
 		
 		ldaa		letra_p
@@ -173,10 +186,6 @@ main		EQU		*
 		psha				;se envía el jugador a atacar
 		jsr		play_cnt	
 		bcs		end_game	;si se recibe el Carry en 1, el jugador de turno ganó
-
-next_p		EQU		*
-		jsr		whoplays	;se recibirá en AccA el jugador a atacar a continuación
-		staa		player		;se habilita la siguiente jugada
 
 		jmp		main
 
@@ -724,10 +733,10 @@ wait_ply	jsr		read_kb
 		beq		play_p1
 		cmpa		#B_P2
 		bne		wait_ply
-		ldaa		#P2
+		ldaa		#P1
 		bra		ply_end
 
-play_p1		ldaa		#P1
+play_p1		ldaa		#P2
 ply_end		rts		
 
 *---------------------------------------
