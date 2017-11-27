@@ -111,6 +111,7 @@ init		EQU		*
 		ldaa		#(HITSIZE*2)
 		psha				;se envía el tamaño del arreglo a limpiar
 		jsr		clrzone
+		%CLRST		3
 		ldaa		#P2		;se inicia atacando al jugador 2
 		staa		player		;se inicia con el jugador 1 (atacando al 2)
 
@@ -127,22 +128,23 @@ main		EQU		*
 		ldaa		#ARRAY_L
 		psha				;se envía el tamaño de la matriz tablero
 		jsr		mirror		;se envía el tablero del jugador atacado al display
+		%CLRST		6
 
 		jsr		input		;se llama a la subrutina de interfaz de usuario
 		staa		letra_p		;se recibe en AccA la letra jugada (fila) y en AccB el número (columna)
 		stab		num_p		;se guarda la jugada
 
-		ldx		#hitlist
-		pshx				;se envía la posición del primer arreglo de barcos tocados
 		ldaa		letra_p
 		psha				;se envía la letra jugada
 		ldab		num_p
 		pshb				;se envía el número jugado
+		ldx		#hitlist
+		pshx				;se envía la posición del primer arreglo de barcos tocados
 		ldaa		player
 		psha				;se envía el jugador a atacar
 		jsr		play_src	;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
-		bcs		main		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
 		%CLRST		5		;se limpia el stack
+		bcs		main		;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
 		
 		ldaa		letra_p
 		psha				;se envía le letra jugada
@@ -179,13 +181,17 @@ main		EQU		*
 		ldaa		#ARRAY_L
 		psha				;se envía el tamaño de la matriz tablero
 		jsr		mirror		;se envía el tablero del jugador atacado al display
+		%CLRST		6
 		
 		ldx		#hitlist
 		pshx				;se envía la posición del primer arreglo de barcos tocados
 		ldaa		player
 		psha				;se envía el jugador a atacar
-		jsr		play_cnt	
-		bcs		end_game	;si se recibe el Carry en 1, el jugador de turno ganó
+		jsr		play_cnt
+		%CLRST		2
+		pula				;se recibe la cantidad de bytes contados
+		cmpa		#9		
+		beq		end_game	;si se llegó al máximo de barcos, se termina el juego
 
 		jmp		main
 
