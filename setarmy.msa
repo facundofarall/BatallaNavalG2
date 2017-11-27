@@ -1,0 +1,322 @@
+		p68H11
+
+$macros.msa
+
+*------------
+* CONSTANTES
+*------------
+
+*--------------------------------------------
+* setarmy: subrutina para definir los barcos
+* 	   de cada usuario
+*--------------------------------------------
+
+CH_TYPE		EQU		3
+
+EL_SIZE		EQU		2
+N_PR		EQU		100
+N_AUX		EQU		4
+
+SA_FIL		EQU		0
+SA_COL		EQU		1
+SA_cARG		EQU		2
+SA_CONT		EQU		3
+SA_TOT		EQU		4
+SA_DIR		EQU		10
+SA_CSUB		EQU		12
+SA_CSHI		EQU		13
+
+setarmy		EQU		*
+
+* back up de registros
+		psha
+		pshb
+		pshx
+		pshy
+
+* variables locales
+		psha
+		psha
+		psha
+		psha
+		psha
+
+* inializo el framepointer
+		tsy
+
+* inicializo los contadores
+		clr		SA_CONT,Y
+		clr		SA_CARG,Y
+		ldaa		SA_CSUB,Y
+		ldab		SA_CSHI,Y
+		aba
+		staa		SA_TOT,Y
+
+* inicializo arreglos
+		ldx		#arry_pr
+		ldaa		#N_PR*EL_SIZE
+		ldab		#0
+		jsr		clrarray
+
+		ldx		#arry_aux
+		ldaa		#N_AUX*EL_SIZE
+		ldab		#0
+		jsr		clrarray
+
+* termine de entrar los barcos?
+sa_check	ldaa		SA_CONT,Y
+		cmpa		SA_TOT,Y
+		beq		sa_end	
+
+* display mensaje para indicar barco
+sa_show		ldx		#msg
+		ldab		SA_CONT,Y
+		abx
+		jsr		show
+
+* espera ingreso de coordenada
+sa_again	jsr		input
+
+		staa		SA_FIL,Y
+		stab		SA_COL,Y
+
+* verifico que no sea una posicion prohibida
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_src
+		pula
+		pulx
+		pulb
+		pula
+		bcs		sa_again
+
+* me fijo que tipo de barco se ingresa
+		psha
+		ldaa		SA_CONT,Y
+		cmpa		#CH_TYPE
+		pula
+		bhs		sa_shi
+* escribo en matriz el submarino
+sa_sub		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		inca
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		deca
+		incb
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		deca
+		decb
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		inca
+		decb
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		ldaa		#SUB_NP
+		psha
+		ldaa		SA_FIL,Y
+		psha
+		pshb
+		ldx		SA_MAT,Y
+		pshx
+		clra
+		psha
+		jsr		writepos
+		pula
+		pulx
+		pulb
+		pula
+		pula
+
+		inc		SA_CONT,Y
+		bra		sa_check
+
+sa_shi		tst		SA_CARG,Y
+		bne
+
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		inca
+		psha
+		pshb
+		ldx		#arry_aux
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		deca
+		incb
+		psha
+		pshb
+		ldx		#arry_aux
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		deca
+		decb
+		psha
+		pshb
+		ldx		#arry_aux
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		inca
+		decb
+		psha
+		pshb
+		ldx		#arry_aux
+		pshx
+		clra
+		psha
+		jsr		play_wrt
+		pula
+		pulx
+		pulb
+		pula
+
+		ldy		#arry_aux
+		ldab		#4
+sa_loop		decb
+		bmi
+		pshb
+		ldaa		0,Y
+		ldab		1,Y
+		psha
+		pshb
+		ldx		#arry_pr
+		pshx
+		clra
+		psha
+		jsr		play_src
+		pula
+		pulx
+		pulb
+		pula
+		pulb
+		bcc		sa_ok
+		inx
+		inx
+		bra		sa_loop
+		
+				
+		
+
+* libero variables temporales
+sa_end		pula
+		pula
+		pula
+		pula
+		pula
+
+* restore de registros
+		puly
+		pulx
+		pulb
+		pula
+
+		rts
+
+*------------
+* VARIABLES 
+*------------
+
+arry_pr		RMB		N_PR*EL_SIZE
+arry_aux	RMB		N_AUX*EL_SIZE
+
+msg		FCC		'Sub1'
+		FCB		0
+		FCC		'Sub2'
+		FCB		0
+		FCC		'Sub3'
+		FCB		0
+		FCC		'Car1'
+		FCB		0	
+		FCC		'Car2'
+		FCB		0	
+		FCC		'Car3'
+		FCB		0
+
+		END
