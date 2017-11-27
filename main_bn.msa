@@ -196,10 +196,10 @@ main		EQU		*
 		jmp		main
 
 end_game	EQU		*
-*		ldaa		player
-*		psha
-*		jsr		winner
-		bra		end_game
+		ldaa		player
+		psha
+		jsr		winner
+		%CLRST		1
 
 end_loop	EQU		*
 		bra		end_loop
@@ -794,6 +794,10 @@ wait_kb		jsr		read_kb
 		
 		cmpa		#B_reset
 		beq		inp_rest
+		cmpa		#B_P1
+		beq		inp_rest
+		cmpa		#B_P2
+		beq		inp_rest
 
 		dec		CONT,Y
 		beq		chk_fire
@@ -1089,6 +1093,31 @@ cra_loop	deca				;contador con cantidad de elementos a limpiar
 cra_end		stab		0,X
 		rts
 
+*=============================================
+*Subrutina winner: Recibe por stack un 1 si
+*gano el player 1 y un 0 si gano el player 2.
+*=============================================
+
+		
+winner		equ	*
+		%BACKUP
+		tsx
+		ldaa	8,x	;recupero parametro enviado por stack
+		beq	win2
+
+win1		equ	*
+		ldx	#string1
+		jsr	show
+		bra	end
+
+win2		equ	*
+		ldx	#string2
+		jsr	show
+	
+end		equ	*
+		%RESTORE
+		rts
+
 *************
 * VARIABLES *
 *************
@@ -1120,6 +1149,13 @@ EL_SIZE 	EQU 		2
 CANTIDAD 	EQU 		SUB*1+CAR*2
 HITSIZE		EQU		EL_SIZE*CANTIDAD+1
 hitlist		RMB 		HITSIZE*2
+
+***END VARIABLES***
+string1		fcc	'WIN1'
+		fcb	00
+
+string2		fcc	'WIN2'
+		fcb	00
 
 ***MATRICES DE TABLERO DE CADA JUGADOR***
 		ORG		$5000
