@@ -105,15 +105,53 @@ ESP		EQU		$20
 init		EQU		*
 		lds		#STACKP
 
+* INICIALIZAR DISPLAY Y TECLADO
 		jsr		initdis		;inicialización de display 7 seg
 		jsr		init_kb		;inicialización de teclado
 
+* LIMPIAR ARREGLO DE BARCOS ATACADOS
 		ldx		#hitlist
 		pshx				;se envía inicio de arreglo de barcos a poner en 0
 		ldaa		#(HITSIZE*2)
 		psha				;se envía el tamaño del arreglo a limpiar
 		jsr		clrzone
 		%CLRST		3
+
+* DEFINIR CANTIDAD DE BARCOS A UTILIZAR
+		jsr		def_ships
+		ldaa		cant_sub	;se carga cantidad de submarinos
+		ldab		cant_shi	;se carga cantidad de cargueros
+		lslb				;se multiplica a la cantidad de cargueros por dos, así se obtiene las posiciones atacables
+		aba
+		staa		tot_pos		;se carga la variable con el total de posiciones atacables
+
+* DEFINIR BARCOS P1
+*		ldx		#play1
+*		jsr		show		;se muestra en el display que el P1 debe poner sus barcos
+*
+*		ldaa		cant_shi
+*		psha				;se envía cantidad de cargueros
+*		ldaa		cant_sub
+*		psha				;se envía cantidad de submarinos
+*		ldx		#p_board
+*		pshx				;se envía el inicio del tablero de P1
+*		jsr		setarmy
+*		%CLRST		4
+
+* DEFINIR BARCOS P2
+*		ldx		#play2
+*		jsr		show		;se muestra en el display que el P2 debe poner sus barcos
+*
+*		ldaa		cant_shi
+*		psha				;se envía cantidad de cargueros
+*		ldaa		cant_sub
+*		psha				;se envía cantidad de submarinos
+*		ldx		#p_board	;se toma la dirección al tablero de P1
+*		ldab		#ARRAY_L
+*		abx				;se desfasa al tablero de P2
+*		pshx				;se envía el inicio del tablero de P2
+*		jsr		setarmy
+*		%CLRST		4
 
 main		EQU		*
 * ELEGIR JUGADOR
@@ -204,7 +242,7 @@ main		EQU		*
 		jsr		play_cnt
 		%CLRST		2
 		pula				;se recibe la cantidad de bytes contados
-		cmpa		#9		
+		cmpa		tot_pos		
 		beq		end_game	;si se llegó al máximo de barcos, se termina el juego
 
 		jmp		main
@@ -357,6 +395,57 @@ gp_shi_d	EQU		*
 gp_shi_h	EQU		*
 		%WRITEPOS	#HIT		;se marca al carguero como tocado
 		%PLAY_WRT			;se agrega la posición al array de barcos atacados
+		%RESTORE
+		rts
+
+*==========================================================================
+* subrutina def_ships
+* Función: Determina los valores de cargueros y submarinos a utilizar.
+* Recibe: Nada
+* Devuelve: Cantidad de cargueros y submarinos en memorias correspondientes.
+* Requiere:
+*==========================================================================
+def_ships	EQU		*
+		%BACKUP
+
+wait_nsu	EQU		*
+		ldx		#subm
+		jsr		show
+		jsr		read_kb
+		tsta
+		bmi		wait_nsu
+		cmpa		buffer
+		beq		wait_nsu
+		staa		buffer
+
+		ldx		#kb_value
+		tab
+		abx
+		ldaa		0,x		;se obtiene el valor ingresado ya codificado
+
+		cmpa		#SUB		;se controla que no sea menor al máximo de submarinos
+		bhi		wait_nsu
+		staa		cant_sub	;se guarda la cantidad de submarinos
+
+wait_nsh	EQU		*
+		ldx		#carg
+		jsr		show
+		jsr		read_kb
+		tsta
+		bmi		wait_nsh
+		cmpa		buffer
+		beq		wait_nsh
+		staa		buffer
+
+		ldx		#kb_value
+		tab
+		abx
+		ldaa		0,x		;se obtiene el valor ingresado ya codificado
+
+		cmpa		#SHI		;se controla que no sea menor al máximo de submarinos
+		bhi		wait_nsh
+		staa		cant_shi	;se guarda la cantidad de submarinos
+
 		%RESTORE
 		rts
 
@@ -1169,6 +1258,9 @@ STACKP		EQU		*-1
 player		RMB		1		;variable de jugador
 letra_p		RMB		1
 num_p		RMB		1
+cant_sub	RMB		1
+cant_shi	RMB		1
+tot_pos		RMB		1
 
 ***KEYBOARD VARIABLES***
 kb_buff		RMB		1
@@ -1177,16 +1269,16 @@ buffer		RMB		1
 string		FCC		'    '
 		FCB		0
 
-kb_value	FCB		10,11,12,0,13,14,15,0,1,2,3,0,4,5,6
+kb_value	FCB		10,11,12,255,13,14,15,255,1,2,3,255,4,5,6,255
 
 kb_ascii	FCC		'ABC DEF 123 456'
 
 ***ARREGLO DE BARCOS TOCADOS***
-SUB		EQU 		3
-CAR		EQU 		3
+SUB		EQU 		5
+SHI		EQU 		4
 EL_SIZE 	EQU 		2
-CANTIDAD 	EQU 		SUB*1+CAR*2
-HITSIZE		EQU		EL_SIZE*CANTIDAD+1
+MAX_ATT 	EQU 		SUB*1+SHI*2
+HITSIZE		EQU		EL_SIZE*MAX_ATT+1
 hitlist		RMB 		HITSIZE*2
 
 ***DISPLAY MESSAGES VARIABLES***
@@ -1200,21 +1292,24 @@ play1		FCC	'P1'
 play2		FCC	'P2'
 		FCB	0,0
 
+subm		FCC	'SUBM'
+carg		FCC	'CARG'
+
 ***MATRICES DE TABLERO DE CADA JUGADOR***
 		ORG		$5000
 p_board		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,SHI_NP,WAT_NP,SUB_NP,WAT_NP,SUB_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,SUB_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
 
-		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,SUB_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		SHI_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,SUB_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
 
 ***MATRIZ DE DISPLAY***
 		ORG		$5F00
