@@ -126,9 +126,6 @@ init		EQU		*
 		staa		tot_pos		;se carga la variable con el total de posiciones atacables
 
 * DEFINIR BARCOS P1
-		ldx		#play1
-		jsr		show		;se muestra en el display que el P1 debe poner sus barcos
-
 		ldaa		cant_shi
 		psha				;se envía cantidad de cargueros
 		ldaa		cant_sub
@@ -139,9 +136,6 @@ init		EQU		*
 		%CLRST		4
 
 * DEFINIR BARCOS P2
-		ldx		#play2
-		jsr		show		;se muestra en el display que el P2 debe poner sus barcos
-
 		ldaa		cant_shi
 		psha				;se envía cantidad de cargueros
 		ldaa		cant_sub
@@ -329,12 +323,23 @@ sa_check	ldaa		SA_CONT,Y
 		%GOTO		sa_end	
 
 * display mensaje para indicar barco
-sa_show		ldx		#msg
+sa_show		cmpa		SA_CSUB,Y
+		bhs		show_shi
+show_sub	ldx		#msg_sub
 		ldaa		#5
 		ldab		SA_CONT,Y
 		mul
 		abx
-		jsr		show
+		bra		show_jmp
+show_shi	ldx		#msg_shi
+		ldaa		SA_CONT,Y
+		ldab		SA_CSUB,Y
+		sba
+		tab
+		ldaa		#5
+		mul
+		abx
+show_jmp	jsr		show
 		%EXPECT		B_reset
 
 * espera ingreso de coordenada
@@ -436,6 +441,7 @@ sa_done		puly
 
 * libero variables temporales
 sa_end		%FIX_ARRY
+		%CLS
 		pula
 		pula
 		pula
@@ -875,12 +881,6 @@ ps_end		EQU		*
 		%RESTORE
 
 		rts
-
-
-
-			
-
-			
 
 *====================================================================================
 * Subrutina "PLAY_CNT"
@@ -1494,17 +1494,24 @@ carg		FCC	'CARG'
 arry_pr		RMB		N_PR*SA_SIZE
 arry_aux	RMB		N_AUX*SA_SIZE
 
-msg		FCC		'SUB1'
+msg_sub		FCC		'SUB1'
 		FCB		0
 		FCC		'SUB2'
 		FCB		0
 		FCC		'SUB3'
 		FCB		0
-		FCC		'CAR1'
+		FCC		'SUB4'
+		FCB		0
+		FCC		'SUB5'
+		FCB		0
+
+msg_shi		FCC		'CAR1'
 		FCB		0	
 		FCC		'CAR2'
 		FCB		0	
 		FCC		'CAR3'
+		FCB		0
+		FCC		'CAR4'
 		FCB		0
 
 ***MATRICES DE TABLERO DE CADA JUGADOR***

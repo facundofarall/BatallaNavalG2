@@ -1,6 +1,19 @@
 **********************************
 * definicion de macro utilizados *
 **********************************
+* limpia display bitmap
+		MACRO	%CLS
+		
+		ldx		#display
+		ldaa		#ARRAY_L
+		ldab		#$03
+cls\@		stab		0,X
+		inx
+		deca
+		bne		cls\<
+
+		ENDMAC
+
 * espera
 		MACRO	%EXPECT
 		
@@ -11,6 +24,7 @@ expe\@		jsr		read_kb
 		bne		expe\<
 
 		ENDMAC
+
 * soltar
 		MACRO	%KEEP
 		
