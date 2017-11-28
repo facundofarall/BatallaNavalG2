@@ -126,32 +126,32 @@ init		EQU		*
 		staa		tot_pos		;se carga la variable con el total de posiciones atacables
 
 * DEFINIR BARCOS P1
-*		ldx		#play1
-*		jsr		show		;se muestra en el display que el P1 debe poner sus barcos
-*
-*		ldaa		cant_shi
-*		psha				;se envía cantidad de cargueros
-*		ldaa		cant_sub
-*		psha				;se envía cantidad de submarinos
-*		ldx		#p_board
-*		pshx				;se envía el inicio del tablero de P1
-*		jsr		setarmy
-*		%CLRST		4
+		ldx		#play1
+		jsr		show		;se muestra en el display que el P1 debe poner sus barcos
+
+		ldaa		cant_shi
+		psha				;se envía cantidad de cargueros
+		ldaa		cant_sub
+		psha				;se envía cantidad de submarinos
+		ldx		#p_board
+		pshx				;se envía el inicio del tablero de P1
+		jsr		setarmy
+		%CLRST		4
 
 * DEFINIR BARCOS P2
-*		ldx		#play2
-*		jsr		show		;se muestra en el display que el P2 debe poner sus barcos
-*
-*		ldaa		cant_shi
-*		psha				;se envía cantidad de cargueros
-*		ldaa		cant_sub
-*		psha				;se envía cantidad de submarinos
-*		ldx		#p_board	;se toma la dirección al tablero de P1
-*		ldab		#ARRAY_L
-*		abx				;se desfasa al tablero de P2
-*		pshx				;se envía el inicio del tablero de P2
-*		jsr		setarmy
-*		%CLRST		4
+		ldx		#play2
+		jsr		show		;se muestra en el display que el P2 debe poner sus barcos
+
+		ldaa		cant_shi
+		psha				;se envía cantidad de cargueros
+		ldaa		cant_sub
+		psha				;se envía cantidad de submarinos
+		ldx		#p_board	;se toma la dirección al tablero de P1
+		ldab		#ARRAY_L
+		abx				;se desfasa al tablero de P2
+		pshx				;se envía el inicio del tablero de P2
+		jsr		setarmy
+		%CLRST		4
 
 main		EQU		*
 * ELEGIR JUGADOR
@@ -260,6 +260,196 @@ end_loop	EQU		*
 **************
 * SUBRUTINES *
 **************
+
+*--------------------------------------------
+* setarmy: subrutina para definir los barcos
+* 	   de cada usuario
+*
+* parametros: Push cantidad de cargueros
+*             Push cantidad de submarinos
+*             Push direccion matriz tablero
+*--------------------------------------------
+
+CH_TYPE		EQU		3
+
+SA_SIZE		EQU		2
+N_PR		EQU		100
+N_AUX		EQU		4
+
+SA_FIL		EQU		0
+SA_COL		EQU		1
+SA_CARG		EQU		2
+SA_CONT		EQU		3
+SA_TOT		EQU		4
+SA_MAT		EQU		13
+SA_CSUB		EQU		15
+SA_CSHI		EQU		16
+
+BY_SUB		EQU		01000000b
+BY_SHI		EQU		10000000b
+
+setarmy		EQU		*
+
+* back up de registros
+		psha
+		pshb
+		pshx
+		pshy
+
+* variables locales
+		psha
+		psha
+		psha
+		psha
+		psha
+
+* inializo el framepointer
+		tsy
+
+* inicializo los contadores
+		clr		SA_CONT,Y
+		clr		SA_CARG,Y
+		ldaa		SA_CSUB,Y
+		ldab		SA_CSHI,Y
+		aba
+		staa		SA_TOT,Y
+
+* inicializo arreglos
+		ldx		#arry_pr
+		ldaa		#N_PR*SA_SIZE
+		ldab		#0
+		jsr		clrarray
+
+		%CLR_AUX
+
+* termine de entrar los barcos?
+sa_check	ldaa		SA_CONT,Y
+		cmpa		SA_TOT,Y
+		bne		sa_show
+		%GOTO		sa_end	
+
+* display mensaje para indicar barco
+sa_show		ldx		#msg
+		ldaa		#5
+		ldab		SA_CONT,Y
+		mul
+		abx
+		jsr		show
+		%EXPECT		B_reset
+
+* espera ingreso de coordenada
+sa_again	jsr		input
+
+		staa		SA_FIL,Y
+		stab		SA_COL,Y
+
+* verifico que no sea una posicion prohibida
+		%IS_PROH
+		bcs		sa_again
+
+* me fijo que tipo de barco se ingresa
+		psha
+		ldaa		SA_CONT,Y
+		cmpa		SA_CSUB,Y
+		pula
+		blo		sa_sub
+		%GOTO		sa_shi
+
+* escribo en matriz el submarino
+sa_sub		%PROH_POS
+		%PROH_PER
+		%SET_POS	BY_SUB
+		inc		SA_CONT,Y
+		%REFRESH
+		%GOTO		sa_check
+
+sa_shi		tst		SA_CARG,Y
+		beq		sa_part1
+		%GOTO		sa_part2
+
+sa_part1	%SET_AUX
+		
+		pshy
+		ldy		#arry_aux
+		ldab		#N_AUX
+sa_loop		decb
+		bmi		sa_notok
+		pshb
+		ldaa		0,Y
+		ldab		1,Y
+		%IS_PROH
+		pulb
+		bcc		sa_ok
+		iny
+		iny
+		bra		sa_loop
+
+sa_notok	puly
+		%GOTO		sa_again
+
+sa_ok		puly
+		ldaa		SA_FIL,Y
+		ldab		SA_COL,Y
+		%PROH_POS
+		inc		SA_CARG,Y
+		%SET_POS	BY_SHI
+		%GOTO		sa_again
+sa_part2	ldx		#arry_aux
+		ldaa		#N_AUX
+sa_verf		deca
+		bpl		sa_chk		
+		%GOTO		sa_again
+sa_chk		ldab		0,X
+		cmpb		SA_FIL,Y
+		bne		sa_not
+		ldab		1,X
+		cmpb		SA_COL,Y
+		bne		sa_not
+		bra		sa_good
+sa_not		inx
+		inx
+		bra		sa_verf
+
+sa_good		pshy
+		ldy		#arry_aux
+		ldab		#4
+sa_loop2	decb
+		bmi		sa_done
+		pshb
+		ldaa		0,Y
+		ldab		1,Y
+		%PROH_POS
+		pulb
+		bra		sa_loop2
+
+sa_done		puly
+		ldaa		SA_FIL,Y
+		ldab		SA_COL,Y
+		%PROH_POS
+		%PROH_PER
+		%SET_POS	BY_SHI
+		inc		SA_CONT,Y
+		clr		SA_CARG,Y
+		%CLR_AUX
+		%REFRESH
+		%GOTO		sa_check
+
+* libero variables temporales
+sa_end		%FIX_ARRY
+		pula
+		pula
+		pula
+		pula
+		pula
+
+* restore de registros
+		puly
+		pulx
+		pulb
+		pula
+
+		rts
+
 *=======================================================================
 * subrutina gameplay
 * Función: Determina si la posición jugada en el juego de batalla naval
@@ -1293,7 +1483,25 @@ play2		FCC	'P2'
 		FCB	0,0
 
 subm		FCC	'SUBM'
+		FCB	0
 carg		FCC	'CARG'
+		FCB	0
+
+arry_pr		RMB		N_PR*SA_SIZE
+arry_aux	RMB		N_AUX*SA_SIZE
+
+msg		FCC		'SUB1'
+		FCB		0
+		FCC		'SUB2'
+		FCB		0
+		FCC		'SUB3'
+		FCB		0
+		FCC		'CAR1'
+		FCB		0	
+		FCC		'CAR2'
+		FCB		0	
+		FCC		'CAR3'
+		FCB		0
 
 ***MATRICES DE TABLERO DE CADA JUGADOR***
 		ORG		$5000
