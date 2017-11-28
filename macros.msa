@@ -1,11 +1,88 @@
 **********************************
 * definicion de macro utilizados *
 **********************************
+* espera
+		MACRO	%EXPECT
+		
+expe\@		jsr		read_kb
+		tsta
+		bmi		expe\.
+		cmpa		#\0
+		bne		expe\<
+
+		ENDMAC
+* soltar
+		MACRO	%KEEP
+		
+keep\@		jsr		read_kb
+		cmpa		#\0
+		beq		keep\<
+
+		ENDMAC
+* filter array auxiliar
+		MACRO	%FIX_ARRY
+
+		ldx		SA_MAT,Y
+		ldaa		#ARRAY_L
+loop\@		ldab		0,X
+		andb		#11000000b
+		orab		#00000011b
+		stab		0,X
+		inx
+		deca
+		bne		loop\<
+
+		ENDMAC
+
+* clear array auxiliar
+		MACRO	%CLR_AUX
+		
+		ldx		#arry_aux
+		ldaa		#N_AUX*SA_SIZE
+		ldab		#0
+		jsr		clrarray
+
+		ENDMAC
+
+* para ir actualizando el display
+		MACRO	%REFRESH
+
+		pshy
+		ldx		#p_board
+		pshx
+		clra
+		psha
+		ldy		#display
+		pshy
+		ldaa		#ARRAY_L
+		psha
+		jsr		mirror
+		pula
+		puly
+		pula
+		pulx
+		puly	
+
+		ENDMAC
+
+* saltos que pasan el limite
+		MACRO	%GOTO
+
+		jmp	\0
+
+		ENDMAC
+
 * agrega posicion al arreglo de posiciones prohibidas
 * toma en A la fila y en B la columna
-
 		MACRO	%PROH_POS
-		psha
+		
+		tsta
+		bne		oka\@
+		ldaa		#$FF
+oka\<		tstb
+		bne		okb\@
+		ldab		#$FF
+okb\<		psha
 		pshb
 		ldx		#arry_pr
 		pshx
@@ -16,6 +93,7 @@
 		pulx
 		pulb
 		pula
+
 		ENDMAC
 
 * agrega las posiciones de la periferia de una posicion al arreglo
@@ -50,6 +128,7 @@
 		psha
 		ldaa		SA_FIL,Y
 		psha
+		ldab		SA_COL,Y
 		pshb
 		ldx		SA_MAT,Y
 		pshx
@@ -90,7 +169,7 @@
 
 		psha
 		pshb
-		ldx		#arry_pr
+		ldx		#arry_aux
 		pshx
 		clra
 		psha
