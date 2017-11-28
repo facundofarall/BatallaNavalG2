@@ -18,9 +18,9 @@ WAT_NP		EQU		00000011b
 SUB_NP		EQU		01000011b
 SHI_NP		EQU		10000011b
 WATER		EQU		00001000b	;verde
-SUNK_SUB	EQU		01010000b	;bordeaux para submarinos
-HIT		EQU		10110000b	;naranja
-SUNK_SHI	EQU		10010000b	;bordeaux para cargueros
+SUNK_SUB	EQU		01110000b	;rojo para submarinos
+HIT		EQU		10111000b	;amarillo
+SUNK_SHI	EQU		10110000b	;rojo para cargueros
 
 FILA		EQU		6
 COL		EQU		6
@@ -1484,7 +1484,7 @@ kb_ascii	FCC		'ABC DEF 123 456'
 
 ***ARREGLO DE BARCOS TOCADOS***
 SUB		EQU 		5
-SHI		EQU 		4
+SHI		EQU 		5
 EL_SIZE 	EQU 		2
 MAX_ATT 	EQU 		SUB*1+SHI*2
 HITSIZE		EQU		EL_SIZE*MAX_ATT+1
