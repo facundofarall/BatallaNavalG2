@@ -124,7 +124,34 @@ init		EQU		*
 		lslb				;se multiplica a la cantidad de cargueros por dos, así se obtiene las posiciones atacables
 		aba
 		staa		tot_pos		;se carga la variable con el total de posiciones atacables
-				
+
+* DEFINIR BARCOS P1
+*		ldx		#play1
+*		jsr		show		;se muestra en el display que el P1 debe poner sus barcos
+*
+*		ldaa		cant_shi
+*		psha				;se envía cantidad de cargueros
+*		ldaa		cant_sub
+*		psha				;se envía cantidad de submarinos
+*		ldx		#p_board
+*		pshx				;se envía el inicio del tablero de P1
+*		jsr		setarmy
+*		%CLRST		4
+
+* DEFINIR BARCOS P2
+*		ldx		#play2
+*		jsr		show		;se muestra en el display que el P2 debe poner sus barcos
+*
+*		ldaa		cant_shi
+*		psha				;se envía cantidad de cargueros
+*		ldaa		cant_sub
+*		psha				;se envía cantidad de submarinos
+*		ldx		#p_board	;se toma la dirección al tablero de P1
+*		ldab		#ARRAY_L
+*		abx				;se desfasa al tablero de P2
+*		pshx				;se envía el inicio del tablero de P2
+*		jsr		setarmy
+*		%CLRST		4
 
 main		EQU		*
 * ELEGIR JUGADOR
@@ -1270,19 +1297,19 @@ carg		FCC	'CARG'
 
 ***MATRICES DE TABLERO DE CADA JUGADOR***
 		ORG		$5000
-p_board		FCB		SHI_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,SUB_NP
-		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,SHI_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,SHI_NP,WAT_NP,SUB_NP,WAT_NP,SUB_NP
-		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,SUB_NP,WAT_NP
+p_board		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
 
-		FCB		SHI_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP,SUB_NP
-		FCB		SHI_NP,WAT_NP,SHI_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		WAT_NP,SUB_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,SHI_NP,WAT_NP
-		FCB		WAT_NP,WAT_NP,SUB_NP,WAT_NP,WAT_NP,WAT_NP
-		FCB		SHI_NP,SHI_NP,WAT_NP,SUB_NP,WAT_NP,SUB_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
+		FCB		WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP,WAT_NP
 
 ***MATRIZ DE DISPLAY***
 		ORG		$5F00
