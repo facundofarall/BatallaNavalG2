@@ -228,10 +228,21 @@ sa_loop		decb
 		pshb
 		ldaa		0,Y
 		ldab		1,Y
+
+* comprobar que sea valida
+		cmpa		#MIN_FIL
+		blo		sa_nval
+		cmpa		#MAX_FIL
+		bhi		sa_nval
+		cmpb		#MIN_COL
+		blo		sa_nval
+		cmpb		#MAX_COL
+		bhi		sa_nval
+
 		%IS_PROH
 		pulb
 		bcc		sa_ok
-		iny
+sa_nval		iny
 		iny
 		bra		sa_loop
 

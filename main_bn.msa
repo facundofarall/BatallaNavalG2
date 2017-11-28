@@ -1,4 +1,5 @@
 		p68h11
+
 $macros.msa
 
 *************
@@ -324,8 +325,8 @@ sa_check	ldaa		SA_CONT,Y
 
 * display mensaje para indicar barco
 sa_show		cmpa		SA_CSUB,Y
-		bhs		show_shi
-show_sub	ldx		#msg_sub
+		bhs		show_shi		;me fijo que tipod e barco es para elegir
+show_sub	ldx		#msg_sub		;uno u otro string
 		ldaa		#5
 		ldab		SA_CONT,Y
 		mul
@@ -333,23 +334,23 @@ show_sub	ldx		#msg_sub
 		bra		show_jmp
 show_shi	ldx		#msg_shi
 		ldaa		SA_CONT,Y
-		ldab		SA_CSUB,Y
+		ldab		SA_CSUB,Y		;cambio el corrimiento adentro de los strings
 		sba
 		tab
 		ldaa		#5
 		mul
 		abx
-show_jmp	jsr		show
+show_jmp	jsr		show			;y luego imprimo el mensaje
 		%EXPECT		B_reset
 
 * espera ingreso de coordenada
-sa_again	jsr		input
+sa_again	jsr		input			;espero una coordenada
 
-		staa		SA_FIL,Y
+		staa		SA_FIL,Y		;la guardo en memoria temporal
 		stab		SA_COL,Y
 
 * verifico que no sea una posicion prohibida
-		%IS_PROH
+		%IS_PROH				;me fijo si esta en la lista de posiciones prohibidas
 		bcs		sa_again
 
 * me fijo que tipo de barco se ingresa
@@ -357,49 +358,63 @@ sa_again	jsr		input
 		ldaa		SA_CONT,Y
 		cmpa		SA_CSUB,Y
 		pula
-		blo		sa_sub
-		%GOTO		sa_shi
+		blo		sa_sub			;segun que tipo de barco manejo distinto
+		%GOTO		sa_shi			;porque el carguero tiene dos partes
 
 * escribo en matriz el submarino
-sa_sub		%PROH_POS
-		%PROH_PER
-		%SET_POS	BY_SUB
+sa_sub		%PROH_POS				;si es submarino agrego a prohibida la posicion
+		%PROH_PER				;y tambien prohibo la periferia del submarino
+		%SET_POS	BY_SUB			;grabo ese barco en la matriz
 		inc		SA_CONT,Y
-		%REFRESH
+		%REFRESH				;y luego refresco la pantalla para que lo vea el jugador
 		%GOTO		sa_check
 
-sa_shi		tst		SA_CARG,Y
-		beq		sa_part1
+sa_shi		tst		SA_CARG,Y		;si es carguero me tengo que fijar
+		beq		sa_part1		;que parte del carguero es
 		%GOTO		sa_part2
 
-sa_part1	%SET_AUX
+sa_part1	%SET_AUX				;creo arreglo auxiliar con posibles partes 2
 		
 		pshy
 		ldy		#arry_aux
 		ldab		#N_AUX
 sa_loop		decb
-		bmi		sa_notok
+		bmi		sa_notok		;me fijo que las auxiliares sean validas
+
+* comprobar que sea valida
+		ldaa		0,Y			;y tambien que esten en el tablero
+		cmpa		#MIN_FIL
+		blo		sa_nval
+		cmpa		#MAX_FIL
+		bhi		sa_nval
+		ldaa		1,Y
+		cmpa		#MIN_COL
+		blo		sa_nval
+		cmpa		#MAX_COL
+		bhi		sa_nval
+	
 		pshb
 		ldaa		0,Y
 		ldab		1,Y
 		%IS_PROH
 		pulb
 		bcc		sa_ok
-		iny
+sa_nval		iny
 		iny
 		bra		sa_loop
 
 sa_notok	puly
+		%CLR_AUX
 		%GOTO		sa_again
 
 sa_ok		puly
 		ldaa		SA_FIL,Y
 		ldab		SA_COL,Y
-		%PROH_POS
+		%PROH_POS				;prohibo la posicion de la parte uno
 		inc		SA_CARG,Y
-		%SET_POS	BY_SHI
+		%SET_POS	BY_SHI			;grabo la posicion de la parte uno
 		%GOTO		sa_again
-sa_part2	ldx		#arry_aux
+sa_part2	ldx		#arry_aux		;me fijo que ingreso una parte dos permitida
 		ldaa		#N_AUX
 sa_verf		deca
 		bpl		sa_chk		
@@ -423,25 +438,25 @@ sa_loop2	decb
 		pshb
 		ldaa		0,Y
 		ldab		1,Y
-		%PROH_POS
+		%PROH_POS				;prohibo la periferia de la parte uno
 		pulb
 		bra		sa_loop2
 
 sa_done		puly
 		ldaa		SA_FIL,Y
 		ldab		SA_COL,Y
-		%PROH_POS
-		%PROH_PER
+		%PROH_POS				;prohibo la parte dos
+		%PROH_PER				;prohibo la periferia de la parte dos
 		%SET_POS	BY_SHI
 		inc		SA_CONT,Y
 		clr		SA_CARG,Y
 		%CLR_AUX
-		%REFRESH
+		%REFRESH				;refresco display para visualizar al jugador
 		%GOTO		sa_check
 
 * libero variables temporales
-sa_end		%FIX_ARRY
-		%CLS
+sa_end		%FIX_ARRY				;correccion en matrices por visualizacion
+		%CLS					;preliminar de la flota del jugador
 		pula
 		pula
 		pula
