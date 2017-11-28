@@ -601,12 +601,13 @@ def_ships	EQU		*
 wait_nsu	EQU		*
 		ldx		#subm
 		jsr		show
+
 		jsr		read_kb
 		tsta
 		bmi		wait_nsu
-		cmpa		buffer
-		beq		wait_nsu
-		staa		buffer
+		psha
+		%EXPECT		B_fire
+		pula
 
 		ldx		#kb_value
 		tab
@@ -620,12 +621,13 @@ wait_nsu	EQU		*
 wait_nsh	EQU		*
 		ldx		#carg
 		jsr		show
+
 		jsr		read_kb
 		tsta
 		bmi		wait_nsh
-		cmpa		buffer
-		beq		wait_nsh
-		staa		buffer
+		psha
+		%EXPECT		B_fire
+		pula
 
 		ldx		#kb_value
 		tab
@@ -672,7 +674,7 @@ mirror		EQU		*
 		addd		12,x		;sumo offset de jugador
 		std		12,x		;guardo la dirección con offset del array fuente
 
-		ldaa		12,x		;cargo longitud de copia en contador
+		ldaa		8,x		;cargo longitud de copia en contador
 		beq		mi_end		;si es cero, vuelvo desde subrutina
 		ldy		9,x		;cargo índice a destino de la copia.
 		ldx		12,x		;cargo índice a array origen de copia.
@@ -1095,6 +1097,8 @@ wait_kb		jsr		read_kb
 
 		dec		CONT,Y
 		beq		chk_fire
+		cmpa		#B_fire
+		beq		inp_rest
 		psha
 		ldx		#kb_value
 		tab
@@ -1441,7 +1445,7 @@ end_t		EQU		*
 *************
 ***STACK***
 		ORG		$4000
-stack		RMB		500
+stack		RMB		600
 STACKP		EQU		*-1
 
 ***MAIN VARIABLES***
@@ -1477,10 +1481,10 @@ string1		FCC	'WIN1'
 string2		FCC	'WIN2'
 		FCB	00
 
-play1		FCC	'P1'
-		FCB	0,0
-play2		FCC	'P2'
-		FCB	0,0
+play1		FCC	'-P1-'
+		FCB	0
+play2		FCC	'-P2-'
+		FCB	0
 
 subm		FCC	'SUBM'
 		FCB	0

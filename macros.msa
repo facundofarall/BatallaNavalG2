@@ -48,7 +48,7 @@ loop\@		ldab		0,X
 		MACRO	%REFRESH
 
 		pshy
-		ldx		#p_board
+		ldx		SA_MAT,Y
 		pshx
 		clra
 		psha
