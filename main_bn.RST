@@ -1,6 +1,6 @@
 ################################################################################
 #                                                                              #
-#    Micro Series 6801 Assembler V2.00/DOS              28/Nov/17  12:37:30    #
+#    Micro Series 6801 Assembler V2.00/DOS              28/Nov/17  14:33:12    #
 #                                                                              #
 #       Source   =   main_bn.msa                                               #
 #       List     =   main_bn.lst                                               #
@@ -422,19 +422,19 @@
        2000 8E4257                    lds             #STACKP
                       
                       * INICIALIZAR DISPLAY Y TECLADO
-       2003 BD29AB                    jsr             initdis         ;inicialización de display 7 seg
-       2006 BD29A3                    jsr             init_kb         ;inicialización de teclado
+       2003 BD29B1                    jsr             initdis         ;inicialización de display 7 seg
+       2006 BD29A9                    jsr             init_kb         ;inicialización de teclado
                       
                       * LIMPIAR ARREGLO DE BARCOS ATACADOS
        2009 CE4284                    ldx             #hitlist
        200C 3C                        pshx                            ;se envía inicio de arreglo de barcos a poner en 0
-       200D 863E                      ldaa            #(HITSIZE*2)
+       200D 8636                      ldaa            #(HITSIZE*2)
        200F 36                        psha                            ;se envía el tamaño del arreglo a limpiar
-       2010 BD2841                    jsr             clrzone
+       2010 BD2847                    jsr             clrzone
        2013                           %CLRST          3
                       
                       * DEFINIR CANTIDAD DE BARCOS A UTILIZAR
-       2016 BD26DE                    jsr             def_ships
+       2016 BD26E4                    jsr             def_ships
        2019 B6425B                    ldaa            cant_sub        ;se carga cantidad de submarinos
        201C F6425C                    ldab            cant_shi        ;se carga cantidad de cargueros
        201F 58                        lslb                            ;se multiplica a la cantidad de cargueros por dos, así se obtiene las posiciones atacables
@@ -448,7 +448,7 @@
        202B 36                        psha                            ;se envía cantidad de submarinos
        202C CE5000                    ldx             #p_board
        202F 3C                        pshx                            ;se envía el inicio del tablero de P1
-       2030 BD2106                    jsr             setarmy
+       2030 BD210C                    jsr             setarmy
        2033                           %CLRST          4
                       
                       * DEFINIR BARCOS P2
@@ -460,112 +460,116 @@
        2042 C624                      ldab            #ARRAY_L
        2044 3A                        abx                             ;se desfasa al tablero de P2
        2045 3C                        pshx                            ;se envía el inicio del tablero de P2
-       2046 BD2106                    jsr             setarmy
+       2046 BD210C                    jsr             setarmy
        2049                           %CLRST          4
                       
-       204D           main            EQU             *
+                      * ENVIAR MENSAJE DE INICIO
+       204D CE42D8                    ldx             #play
+       2050 BD2914                    jsr             show
+                      
+       2053           main            EQU             *
                       * ELEGIR JUGADOR
-       204D BD2859                    jsr             whoplays        ;se recibirá en AccA el jugador a atacar a continuación
-       2050 B74258                    staa            player          ;se habilita la siguiente jugada
+       2053 BD285F                    jsr             whoplays        ;se recibirá en AccA el jugador a atacar a continuación
+       2056 B74258                    staa            player          ;se habilita la siguiente jugada
                       
                       * ENVIAR TABLERO DE JUGADOR A ATACAR A DISPLAY
-       2053 CE5000                    ldx             #p_board
-       2056 3C                        pshx                            ;se envía el inicio de las matrices de tableros
-       2057 B64258                    ldaa            player
-       205A 36                        psha                            ;se envía el jugador atacado
-       205B CE5F00                    ldx             #display
-       205E 3C                        pshx                            ;se envía la matriz de display (destino a copiar)
-       205F 8624                      ldaa            #ARRAY_L
-       2061 36                        psha                            ;se envía el tamaño de la matriz tablero
-       2062 BD2735                    jsr             mirror          ;se envía el tablero del jugador atacado al display
-       2065                           %CLRST          6
+       2059 CE5000                    ldx             #p_board
+       205C 3C                        pshx                            ;se envía el inicio de las matrices de tableros
+       205D B64258                    ldaa            player
+       2060 36                        psha                            ;se envía el jugador atacado
+       2061 CE5F00                    ldx             #display
+       2064 3C                        pshx                            ;se envía la matriz de display (destino a copiar)
+       2065 8624                      ldaa            #ARRAY_L
+       2067 36                        psha                            ;se envía el tamaño de la matriz tablero
+       2068 BD273B                    jsr             mirror          ;se envía el tablero del jugador atacado al display
+       206B                           %CLRST          6
                       
                       * INGRESAR POSICIÓN A ATACAR
-       206B BD286E                    jsr             input           ;se llama a la subrutina de interfaz de usuario
-       206E B74259                    staa            letra_p         ;se recibe en AccA la letra jugada (fila) y en AccB el número (columna)
-       2071 F7425A                    stab            num_p           ;se guarda la jugada
+       2071 BD2874                    jsr             input           ;se llama a la subrutina de interfaz de usuario
+       2074 B74259                    staa            letra_p         ;se recibe en AccA la letra jugada (fila) y en AccB el número (columna)
+       2077 F7425A                    stab            num_p           ;se guarda la jugada
                       
                       * VERIFICAR QUE NO SEA POSICIÓN DE BARCO YA ATACADA
-       2074 B64259                    ldaa            letra_p
-       2077 36                        psha                            ;se envía la letra jugada
-       2078 F6425A                    ldab            num_p
-       207B 37                        pshb                            ;se envía el número jugado
-       207C CE4284                    ldx             #hitlist
-       207F 3C                        pshx                            ;se envía la posición del primer arreglo de barcos tocados
-       2080 B64258                    ldaa            player
-       2083 36                        psha                            ;se envía el jugador a atacar
-       2084 BD27C0                    jsr             play_src        ;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
-       2087                           %CLRST          5               ;se limpia el stack
-       208C 25BF                      bcs             main            ;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
+       207A B64259                    ldaa            letra_p
+       207D 36                        psha                            ;se envía la letra jugada
+       207E F6425A                    ldab            num_p
+       2081 37                        pshb                            ;se envía el número jugado
+       2082 CE4284                    ldx             #hitlist
+       2085 3C                        pshx                            ;se envía la posición del primer arreglo de barcos tocados
+       2086 B64258                    ldaa            player
+       2089 36                        psha                            ;se envía el jugador a atacar
+       208A BD27C6                    jsr             play_src        ;se recibirá el carry en 1 si la posición corresponde a un barco ya atacado
+       208D                           %CLRST          5               ;se limpia el stack
+       2092 25BF                      bcs             main            ;si la posición ya fue jugada, se pierde el turno y pasa al siguiente
                       
                       * MANDAR QUE JUGADOR ESTÁ JUGANDO AL DISPLAY
-       208E B64258                    ldaa            player
-       2091 36                        psha                            ;se envía el jugador que está siendo atacado
-       2092 BD2A15                    jsr             turn
-       2095                           %CLRST          1
+       2094 B64258                    ldaa            player
+       2097 36                        psha                            ;se envía el jugador que está siendo atacado
+       2098 BD2A1B                    jsr             turn
+       209B                           %CLRST          1
                       
                       * BUSCAR EL BYTE ATACADO EN EL TABLERO DEL JUGADOR ATACADO
-       2096 B64259                    ldaa            letra_p
-       2099 36                        psha                            ;se envía le letra jugada
-       209A F6425A                    ldab            num_p
-       209D 37                        pshb                            ;se envía el número jugado
-       209E CE5000                    ldx             #p_board
-       20A1 3C                        pshx                            ;se envía la dirección de inicio de los arreglos de tablero
-       20A2 F64258                    ldab            player
-       20A5 37                        pshb                            ;se envía el jugador a atacar
-       20A6 BD275E                    jsr             fetchpos
-       20A9                           %CLRST          4               ;se limpia el stack
-       20AD 32                        pula                            ;se toma del stack el dato del byte jugado
+       209C B64259                    ldaa            letra_p
+       209F 36                        psha                            ;se envía le letra jugada
+       20A0 F6425A                    ldab            num_p
+       20A3 37                        pshb                            ;se envía el número jugado
+       20A4 CE5000                    ldx             #p_board
+       20A7 3C                        pshx                            ;se envía la dirección de inicio de los arreglos de tablero
+       20A8 F64258                    ldab            player
+       20AB 37                        pshb                            ;se envía el jugador a atacar
+       20AC BD2764                    jsr             fetchpos
+       20AF                           %CLRST          4               ;se limpia el stack
+       20B3 32                        pula                            ;se toma del stack el dato del byte jugado
                       
                       * ATACAR
-       20AE CE4284                    ldx             #hitlist
-       20B1 3C                        pshx                            ;se envía inicio del arreglo de barcos atacados
-       20B2 36                        psha                            ;se envía el byte a jugado
-       20B3 B64259                    ldaa            letra_p
-       20B6 36                        psha                            ;se envía le letra jugada
-       20B7 F6425A                    ldab            num_p
-       20BA 37                        pshb                            ;se envía el número jugado
-       20BB CE5000                    ldx             #p_board
-       20BE 3C                        pshx                            ;se envía la dirección de inicio de los arreglos de tablero
-       20BF F64258                    ldab            player
-       20C2 37                        pshb                            ;se envía el jugador a atacar
-       20C3 BD2476                    jsr             gameplay
-       20C6                           %CLRST          8               ;se limpia el stack
+       20B4 CE4284                    ldx             #hitlist
+       20B7 3C                        pshx                            ;se envía inicio del arreglo de barcos atacados
+       20B8 36                        psha                            ;se envía el byte a jugado
+       20B9 B64259                    ldaa            letra_p
+       20BC 36                        psha                            ;se envía le letra jugada
+       20BD F6425A                    ldab            num_p
+       20C0 37                        pshb                            ;se envía el número jugado
+       20C1 CE5000                    ldx             #p_board
+       20C4 3C                        pshx                            ;se envía la dirección de inicio de los arreglos de tablero
+       20C5 F64258                    ldab            player
+       20C8 37                        pshb                            ;se envía el jugador a atacar
+       20C9 BD247C                    jsr             gameplay
+       20CC                           %CLRST          8               ;se limpia el stack
                       
                       * ACTUALIZAR DISPLAY CON LA POSICIÓN YA ATACADA
-       20CE CE5000                    ldx             #p_board
-       20D1 3C                        pshx                            ;se envía el inicio de las matrices de tableros
-       20D2 B64258                    ldaa            player
-       20D5 36                        psha                            ;se envía el jugador atacado
-       20D6 CE5F00                    ldx             #display
-       20D9 3C                        pshx                            ;se envía la matriz de display (destino a copiar)
-       20DA 8624                      ldaa            #ARRAY_L
-       20DC 36                        psha                            ;se envía el tamaño de la matriz tablero
-       20DD BD2735                    jsr             mirror          ;se envía el tablero del jugador atacado al display
-       20E0                           %CLRST          6
+       20D4 CE5000                    ldx             #p_board
+       20D7 3C                        pshx                            ;se envía el inicio de las matrices de tableros
+       20D8 B64258                    ldaa            player
+       20DB 36                        psha                            ;se envía el jugador atacado
+       20DC CE5F00                    ldx             #display
+       20DF 3C                        pshx                            ;se envía la matriz de display (destino a copiar)
+       20E0 8624                      ldaa            #ARRAY_L
+       20E2 36                        psha                            ;se envía el tamaño de la matriz tablero
+       20E3 BD273B                    jsr             mirror          ;se envía el tablero del jugador atacado al display
+       20E6                           %CLRST          6
                       
                       * CONTAR BARCOS ATACADOS A VER SI EL JUGADOR GANÓ               
-       20E6 CE4284                    ldx             #hitlist
-       20E9 3C                        pshx                            ;se envía la posición del primer arreglo de barcos tocados
-       20EA B64258                    ldaa            player
-       20ED 36                        psha                            ;se envía el jugador a atacar
-       20EE BD27F3                    jsr             play_cnt
-       20F1                           %CLRST          2
-       20F3 32                        pula                            ;se recibe la cantidad de bytes contados
-       20F4 B1425D                    cmpa            tot_pos         
-       20F7 2703                      beq             end_game        ;si se llegó al máximo de barcos, se termina el juego
+       20EC CE4284                    ldx             #hitlist
+       20EF 3C                        pshx                            ;se envía la posición del primer arreglo de barcos tocados
+       20F0 B64258                    ldaa            player
+       20F3 36                        psha                            ;se envía el jugador a atacar
+       20F4 BD27F9                    jsr             play_cnt
+       20F7                           %CLRST          2
+       20F9 32                        pula                            ;se recibe la cantidad de bytes contados
+       20FA B1425D                    cmpa            tot_pos         
+       20FD 2703                      beq             end_game        ;si se llegó al máximo de barcos, se termina el juego
                       
-       20F9 7E204D                    jmp             main
+       20FF 7E2053                    jmp             main
                       
                       * MANDAR MENSAJE A DISPLAY DE QUIÉN GANÓ
-       20FC           end_game        EQU             *
-       20FC B64258                    ldaa            player
-       20FF 36                        psha
-       2100 BD29F7                    jsr             winner
-       2103                           %CLRST          1
+       2102           end_game        EQU             *
+       2102 B64258                    ldaa            player
+       2105 36                        psha
+       2106 BD29FD                    jsr             winner
+       2109                           %CLRST          1
                       
-       2104           end_loop        EQU             *
-       2104 20FE                      bra             end_loop
+       210A           end_loop        EQU             *
+       210A 20FE                      bra             end_loop
                       
                       **************
                       * SUBRUTINES *
@@ -598,193 +602,193 @@
        0040           BY_SUB          EQU             01000000b
        0080           BY_SHI          EQU             10000000b
                       
-       2106           setarmy         EQU             *
+       210C           setarmy         EQU             *
                       
                       * back up de registros
-       2106 36                        psha
-       2107 37                        pshb
-       2108 3C                        pshx
-       2109 183C                      pshy
+       210C 36                        psha
+       210D 37                        pshb
+       210E 3C                        pshx
+       210F 183C                      pshy
                       
                       * variables locales
-       210B 36                        psha
-       210C 36                        psha
-       210D 36                        psha
-       210E 36                        psha
-       210F 36                        psha
+       2111 36                        psha
+       2112 36                        psha
+       2113 36                        psha
+       2114 36                        psha
+       2115 36                        psha
                       
                       * inializo el framepointer
-       2110 1830                      tsy
+       2116 1830                      tsy
                       
                       * inicializo los contadores
-       2112 186F03                    clr             SA_CONT,Y
-       2115 186F02                    clr             SA_CARG,Y
-       2118 18A60F                    ldaa            SA_CSUB,Y
-       211B 18E610                    ldab            SA_CSHI,Y
-       211E 1B                        aba
-       211F 18A704                    staa            SA_TOT,Y
+       2118 186F03                    clr             SA_CONT,Y
+       211B 186F02                    clr             SA_CARG,Y
+       211E 18A60F                    ldaa            SA_CSUB,Y
+       2121 18E610                    ldab            SA_CSHI,Y
+       2124 1B                        aba
+       2125 18A704                    staa            SA_TOT,Y
                       
                       * inicializo arreglos
-       2122 CE42E0                    ldx             #arry_pr
-       2125 86C8                      ldaa            #N_PR*SA_SIZE
-       2127 C600                      ldab            #0
-       2129 BD29EC                    jsr             clrarray
+       2128 CE42DD                    ldx             #arry_pr
+       212B 86C8                      ldaa            #N_PR*SA_SIZE
+       212D C600                      ldab            #0
+       212F BD29F2                    jsr             clrarray
                       
-       212C                           %CLR_AUX
+       2132                           %CLR_AUX
                       
                       * termine de entrar los barcos?
-       2136 18A603    sa_check        ldaa            SA_CONT,Y
-       2139 18A104                    cmpa            SA_TOT,Y
-       213C 2603                      bne             sa_show
-       213E                           %GOTO           sa_end  
+       213C 18A603    sa_check        ldaa            SA_CONT,Y
+       213F 18A104                    cmpa            SA_TOT,Y
+       2142 2603                      bne             sa_show
+       2144                           %GOTO           sa_end  
                       
                       * display mensaje para indicar barco
-       2141 18A10F    sa_show         cmpa            SA_CSUB,Y
-       2144 240C                      bhs             show_shi                ;me fijo que tipod e barco es para elegir
-       2146 CE43B0    show_sub        ldx             #msg_sub                ;uno u otro string
-       2149 8605                      ldaa            #5
-       214B 18E603                    ldab            SA_CONT,Y
-       214E 3D                        mul
-       214F 3A                        abx
-       2150 200F                      bra             show_jmp
-       2152 CE43C9    show_shi        ldx             #msg_shi
-       2155 18A603                    ldaa            SA_CONT,Y
-       2158 18E60F                    ldab            SA_CSUB,Y               ;cambio el corrimiento adentro de los strings
-       215B 10                        sba
-       215C 16                        tab
-       215D 8605                      ldaa            #5
-       215F 3D                        mul
-       2160 3A                        abx
-       2161 BD290E    show_jmp        jsr             show                    ;y luego imprimo el mensaje
-       2164                           %EXPECT         B_reset
+       2147 18A10F    sa_show         cmpa            SA_CSUB,Y
+       214A 240C                      bhs             show_shi                ;me fijo que tipod e barco es para elegir
+       214C CE43AD    show_sub        ldx             #msg_sub                ;uno u otro string
+       214F 8605                      ldaa            #5
+       2151 18E603                    ldab            SA_CONT,Y
+       2154 3D                        mul
+       2155 3A                        abx
+       2156 200F                      bra             show_jmp
+       2158 CE43C6    show_shi        ldx             #msg_shi
+       215B 18A603                    ldaa            SA_CONT,Y
+       215E 18E60F                    ldab            SA_CSUB,Y               ;cambio el corrimiento adentro de los strings
+       2161 10                        sba
+       2162 16                        tab
+       2163 8605                      ldaa            #5
+       2165 3D                        mul
+       2166 3A                        abx
+       2167 BD2914    show_jmp        jsr             show                    ;y luego imprimo el mensaje
+       216A                           %EXPECT         B_reset
                       
                       * espera ingreso de coordenada
-       216E BD286E    sa_again        jsr             input                   ;espero una coordenada
+       2174 BD2874    sa_again        jsr             input                   ;espero una coordenada
                       
-       2171 18A700                    staa            SA_FIL,Y                ;la guardo en memoria temporal
-       2174 18E701                    stab            SA_COL,Y
+       2177 18A700                    staa            SA_FIL,Y                ;la guardo en memoria temporal
+       217A 18E701                    stab            SA_COL,Y
                       
                       * verifico que no sea una posicion prohibida
-       2177                           %IS_PROH                                ;me fijo si esta en la lista de posiciones prohibidas
-       2186 25E6                      bcs             sa_again
+       217D                           %IS_PROH                                ;me fijo si esta en la lista de posiciones prohibidas
+       218C 25E6                      bcs             sa_again
                       
                       * me fijo que tipo de barco se ingresa
-       2188 36                        psha
-       2189 18A603                    ldaa            SA_CONT,Y
-       218C 18A10F                    cmpa            SA_CSUB,Y
-       218F 32                        pula
-       2190 2503                      blo             sa_sub                  ;segun que tipo de barco manejo distinto
-       2192                           %GOTO           sa_shi                  ;porque el carguero tiene dos partes
+       218E 36                        psha
+       218F 18A603                    ldaa            SA_CONT,Y
+       2192 18A10F                    cmpa            SA_CSUB,Y
+       2195 32                        pula
+       2196 2503                      blo             sa_sub                  ;segun que tipo de barco manejo distinto
+       2198                           %GOTO           sa_shi                  ;porque el carguero tiene dos partes
                       
                       * escribo en matriz el submarino
-       2195           sa_sub          %PROH_POS                               ;si es submarino agrego a prohibida la posicion
-       21AE                           %PROH_PER                               ;y tambien prohibo la periferia del submarino
-       2219                           %SET_POS        BY_SUB                  ;grabo ese barco en la matriz
-       2232 186C03                    inc             SA_CONT,Y
-       2235                           %REFRESH                                ;y luego refresco la pantalla para que lo vea el jugador
-       2250                           %GOTO           sa_check
+       219B           sa_sub          %PROH_POS                               ;si es submarino agrego a prohibida la posicion
+       21B4                           %PROH_PER                               ;y tambien prohibo la periferia del submarino
+       221F                           %SET_POS        BY_SUB                  ;grabo ese barco en la matriz
+       2238 186C03                    inc             SA_CONT,Y
+       223B                           %REFRESH                                ;y luego refresco la pantalla para que lo vea el jugador
+       2256                           %GOTO           sa_check
                       
-       2253 186D02    sa_shi          tst             SA_CARG,Y               ;si es carguero me tengo que fijar
-       2256 2703                      beq             sa_part1                ;que parte del carguero es
-       2258                           %GOTO           sa_part2
+       2259 186D02    sa_shi          tst             SA_CARG,Y               ;si es carguero me tengo que fijar
+       225C 2703                      beq             sa_part1                ;que parte del carguero es
+       225E                           %GOTO           sa_part2
                       
-       225B           sa_part1        %SET_AUX                                ;creo arreglo auxiliar con posibles partes 2
+       2261           sa_part1        %SET_AUX                                ;creo arreglo auxiliar con posibles partes 2
                                       
-       229E 183C                      pshy
-       22A0 18CE43A8                  ldy             #arry_aux
-       22A4 C604                      ldab            #N_AUX
-       22A6 5A        sa_loop         decb
-       22A7 2B35                      bmi             sa_notok                ;me fijo que las auxiliares sean validas
+       22A4 183C                      pshy
+       22A6 18CE43A5                  ldy             #arry_aux
+       22AA C604                      ldab            #N_AUX
+       22AC 5A        sa_loop         decb
+       22AD 2B35                      bmi             sa_notok                ;me fijo que las auxiliares sean validas
                       
                       * comprobar que sea valida
-       22A9 18A600                    ldaa            0,Y                     ;y tambien que esten en el tablero
-       22AC 810A                      cmpa            #MIN_FIL
-       22AE 2528                      blo             sa_nval
-       22B0 810F                      cmpa            #MAX_FIL
-       22B2 2224                      bhi             sa_nval
-       22B4 18A601                    ldaa            1,Y
-       22B7 8101                      cmpa            #MIN_COL
-       22B9 251D                      blo             sa_nval
-       22BB 8106                      cmpa            #MAX_COL
-       22BD 2219                      bhi             sa_nval
+       22AF 18A600                    ldaa            0,Y                     ;y tambien que esten en el tablero
+       22B2 810A                      cmpa            #MIN_FIL
+       22B4 2528                      blo             sa_nval
+       22B6 810F                      cmpa            #MAX_FIL
+       22B8 2224                      bhi             sa_nval
+       22BA 18A601                    ldaa            1,Y
+       22BD 8101                      cmpa            #MIN_COL
+       22BF 251D                      blo             sa_nval
+       22C1 8106                      cmpa            #MAX_COL
+       22C3 2219                      bhi             sa_nval
                               
-       22BF 37                        pshb
-       22C0 18A600                    ldaa            0,Y
-       22C3 18E601                    ldab            1,Y
-       22C6                           %IS_PROH
-       22D5 33                        pulb
-       22D6 2415                      bcc             sa_ok
-       22D8 1808      sa_nval         iny
-       22DA 1808                      iny
-       22DC 20C8                      bra             sa_loop
+       22C5 37                        pshb
+       22C6 18A600                    ldaa            0,Y
+       22C9 18E601                    ldab            1,Y
+       22CC                           %IS_PROH
+       22DB 33                        pulb
+       22DC 2415                      bcc             sa_ok
+       22DE 1808      sa_nval         iny
+       22E0 1808                      iny
+       22E2 20C8                      bra             sa_loop
                       
-       22DE 1838      sa_notok        puly
-       22E0                           %CLR_AUX
-       22EA                           %GOTO           sa_again
+       22E4 1838      sa_notok        puly
+       22E6                           %CLR_AUX
+       22F0                           %GOTO           sa_again
                       
-       22ED 1838      sa_ok           puly
-       22EF 18A600                    ldaa            SA_FIL,Y
-       22F2 18E601                    ldab            SA_COL,Y
-       22F5                           %PROH_POS                               ;prohibo la posicion de la parte uno
-       230E 186C02                    inc             SA_CARG,Y
-       2311                           %SET_POS        BY_SHI                  ;grabo la posicion de la parte uno
-       232A                           %GOTO           sa_again
-       232D CE43A8    sa_part2        ldx             #arry_aux               ;me fijo que ingreso una parte dos permitida
-       2330 8604                      ldaa            #N_AUX
-       2332 4A        sa_verf         deca
-       2333 2A03                      bpl             sa_chk          
-       2335                           %GOTO           sa_again
-       2338 E600      sa_chk          ldab            0,X
-       233A 18E100                    cmpb            SA_FIL,Y
-       233D 2609                      bne             sa_not
-       233F E601                      ldab            1,X
-       2341 18E101                    cmpb            SA_COL,Y
-       2344 2602                      bne             sa_not
-       2346 2004                      bra             sa_good
-       2348 08        sa_not          inx
-       2349 08                        inx
-       234A 20E6                      bra             sa_verf
+       22F3 1838      sa_ok           puly
+       22F5 18A600                    ldaa            SA_FIL,Y
+       22F8 18E601                    ldab            SA_COL,Y
+       22FB                           %PROH_POS                               ;prohibo la posicion de la parte uno
+       2314 186C02                    inc             SA_CARG,Y
+       2317                           %SET_POS        BY_SHI                  ;grabo la posicion de la parte uno
+       2330                           %GOTO           sa_again
+       2333 CE43A5    sa_part2        ldx             #arry_aux               ;me fijo que ingreso una parte dos permitida
+       2336 8604                      ldaa            #N_AUX
+       2338 4A        sa_verf         deca
+       2339 2A03                      bpl             sa_chk          
+       233B                           %GOTO           sa_again
+       233E E600      sa_chk          ldab            0,X
+       2340 18E100                    cmpb            SA_FIL,Y
+       2343 2609                      bne             sa_not
+       2345 E601                      ldab            1,X
+       2347 18E101                    cmpb            SA_COL,Y
+       234A 2602                      bne             sa_not
+       234C 2004                      bra             sa_good
+       234E 08        sa_not          inx
+       234F 08                        inx
+       2350 20E6                      bra             sa_verf
                       
-       234C 183C      sa_good         pshy
-       234E 18CE43A8                  ldy             #arry_aux
-       2352 C604                      ldab            #4
-       2354 5A        sa_loop2        decb
-       2355 2B23                      bmi             sa_done
-       2357 37                        pshb
-       2358 18A600                    ldaa            0,Y
-       235B 18E601                    ldab            1,Y
-       235E                           %PROH_POS                               ;prohibo la periferia de la parte uno
-       2377 33                        pulb
-       2378 20DA                      bra             sa_loop2
+       2352 183C      sa_good         pshy
+       2354 18CE43A5                  ldy             #arry_aux
+       2358 C604                      ldab            #4
+       235A 5A        sa_loop2        decb
+       235B 2B23                      bmi             sa_done
+       235D 37                        pshb
+       235E 18A600                    ldaa            0,Y
+       2361 18E601                    ldab            1,Y
+       2364                           %PROH_POS                               ;prohibo la periferia de la parte uno
+       237D 33                        pulb
+       237E 20DA                      bra             sa_loop2
                       
-       237A 1838      sa_done         puly
-       237C 18A600                    ldaa            SA_FIL,Y
-       237F 18E601                    ldab            SA_COL,Y
-       2382                           %PROH_POS                               ;prohibo la parte dos
-       239B                           %PROH_PER                               ;prohibo la periferia de la parte dos
-       2406                           %SET_POS        BY_SHI
-       241F 186C03                    inc             SA_CONT,Y
-       2422 186F02                    clr             SA_CARG,Y
-       2425                           %CLR_AUX
-       242F                           %REFRESH                                ;refresco display para visualizar al jugador
-       244A                           %GOTO           sa_check
+       2380 1838      sa_done         puly
+       2382 18A600                    ldaa            SA_FIL,Y
+       2385 18E601                    ldab            SA_COL,Y
+       2388                           %PROH_POS                               ;prohibo la parte dos
+       23A1                           %PROH_PER                               ;prohibo la periferia de la parte dos
+       240C                           %SET_POS        BY_SHI
+       2425 186C03                    inc             SA_CONT,Y
+       2428 186F02                    clr             SA_CARG,Y
+       242B                           %CLR_AUX
+       2435                           %REFRESH                                ;refresco display para visualizar al jugador
+       2450                           %GOTO           sa_check
                       
                       * libero variables temporales
-       244D           sa_end          %FIX_ARRY                               ;correccion en matrices por visualizacion
-       245E                           %CLS                                    ;preliminar de la flota del jugador
-       246B 32                        pula
-       246C 32                        pula
-       246D 32                        pula
-       246E 32                        pula
-       246F 32                        pula
+       2453           sa_end          %FIX_ARRY                               ;correccion en matrices por visualizacion
+       2464                           %CLS                                    ;preliminar de la flota del jugador
+       2471 32                        pula
+       2472 32                        pula
+       2473 32                        pula
+       2474 32                        pula
+       2475 32                        pula
                       
                       * restore de registros
-       2470 1838                      puly
-       2472 38                        pulx
-       2473 33                        pulb
-       2474 32                        pula
+       2476 1838                      puly
+       2478 38                        pulx
+       2479 33                        pulb
+       247A 32                        pula
                       
-       2475 39                        rts
+       247B 39                        rts
                       
                       *=======================================================================
                       * subrutina gameplay
@@ -801,128 +805,128 @@
                       * Devuelve: parámetro jugado en posición correspondiente.
                       * Requiere: 
                       *=======================================================================
-       2476           gameplay        EQU             *
-       2476                           %BACKUP
+       247C           gameplay        EQU             *
+       247C                           %BACKUP
                                       
-       247B 30                        tsx                             ;se usa el IX como frame pointer
-       247C A60D                      ldaa            13,x            ;se carga en AccA el byte a analizar
-       247E 84C0                      anda            #11000000b      ;se enmascan los bits 0 a 5, para analizar los más significativos
+       2481 30                        tsx                             ;se usa el IX como frame pointer
+       2482 A60D                      ldaa            13,x            ;se carga en AccA el byte a analizar
+       2484 84C0                      anda            #11000000b      ;se enmascan los bits 0 a 5, para analizar los más significativos
                       
-       2480           gp_water        EQU             *
-       2480 2620                      bne             gp_sub          ;se estudia si era agua
-       2482                           %WRITEPOS       #WATER          ;se cambia el color en el tablero
-       249C                           %RESTORE
-       24A1 39                        rts
+       2486           gp_water        EQU             *
+       2486 2620                      bne             gp_sub          ;se estudia si era agua
+       2488                           %WRITEPOS       #WATER          ;se cambia el color en el tablero
+       24A2                           %RESTORE
+       24A7 39                        rts
                       
-       24A2           gp_sub          EQU             *
-       24A2 8140                      cmpa            #01000000b      ;se estudia si era un submarino
-       24A4 2636                      bne             gp_shi_r
-       24A6                           %WRITEPOS       #SUNK_SUB       ;se cambia el color en el tablero
-       24C0                           %PLAY_WRT                       ;se agraga la posición al array de barcos atacados
-       24D6                           %RESTORE
-       24DB 39                        rts
+       24A8           gp_sub          EQU             *
+       24A8 8140                      cmpa            #01000000b      ;se estudia si era un submarino
+       24AA 2636                      bne             gp_shi_r
+       24AC                           %WRITEPOS       #SUNK_SUB       ;se cambia el color en el tablero
+       24C6                           %PLAY_WRT                       ;se agraga la posición al array de barcos atacados
+       24DC                           %RESTORE
+       24E1 39                        rts
                       
-       24DC           gp_shi_r        EQU             *               ;si no era ninguno de los anteriores, es un carguero
-       24DC E60B                      ldab            11,x
-       24DE C106                      cmpb            #MAX_C
-       24E0 276D                      beq             gp_shi_l        ;si está en el borde derecho, se continúa
-       24E2 E60C                      ldab            12,x
-       24E4 37                        pshb                            ;se envía la letra (fila)
-       24E5 E60B                      ldab            11,x
-       24E7 5C                        incb                            ;se avanza a la derecha
-       24E8 37                        pshb                            ;se envía el num (columna)
-       24E9 1AEE0E                    ldy             14,x
-       24EC 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
-       24EE E608                      ldab            8,x
-       24F0 37                        pshb                            ;se envía el jugador atacado
-       24F1 BD27C0                    jsr             play_src        ;se busca la posición de la derecha
-       24F4                           %CLRST          5
-       24F9 2454                      bcc             gp_shi_l        ;si no había barco atacado en la derecha, se busca la izquierda
-       24FB                           %WRITEPOS       #SUNK_SHI       
-       2515 6C0B                      inc             11,x
-       2517                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
-       2531 6A0B                      dec             11,x            ;se recupera el dato
-       2533                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
-       2549                           %RESTORE
-       254E 39                        rts
+       24E2           gp_shi_r        EQU             *               ;si no era ninguno de los anteriores, es un carguero
+       24E2 E60B                      ldab            11,x
+       24E4 C106                      cmpb            #MAX_C
+       24E6 276D                      beq             gp_shi_l        ;si está en el borde derecho, se continúa
+       24E8 E60C                      ldab            12,x
+       24EA 37                        pshb                            ;se envía la letra (fila)
+       24EB E60B                      ldab            11,x
+       24ED 5C                        incb                            ;se avanza a la derecha
+       24EE 37                        pshb                            ;se envía el num (columna)
+       24EF 1AEE0E                    ldy             14,x
+       24F2 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
+       24F4 E608                      ldab            8,x
+       24F6 37                        pshb                            ;se envía el jugador atacado
+       24F7 BD27C6                    jsr             play_src        ;se busca la posición de la derecha
+       24FA                           %CLRST          5
+       24FF 2454                      bcc             gp_shi_l        ;si no había barco atacado en la derecha, se busca la izquierda
+       2501                           %WRITEPOS       #SUNK_SHI       
+       251B 6C0B                      inc             11,x
+       251D                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
+       2537 6A0B                      dec             11,x            ;se recupera el dato
+       2539                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
+       254F                           %RESTORE
+       2554 39                        rts
                       
-       254F           gp_shi_l        EQU             *
-       254F E60B                      ldab            11,x
-       2551 C101                      cmpb            #MIN_C
-       2553 276D                      beq             gp_shi_u        ;si está en el borde izquierdo, se continúa
-       2555 E60C                      ldab            12,x
-       2557 37                        pshb                            ;se envía la letra (fila)
-       2558 E60B                      ldab            11,x
-       255A 5A                        decb                            ;se retrocede a la izquierda
-       255B 37                        pshb                            ;se envía el número (columna)
-       255C 1AEE0E                    ldy             14,x
-       255F 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
-       2561 E608                      ldab            8,x
-       2563 37                        pshb                            ;se envía el jugador atacado
-       2564 BD27C0                    jsr             play_src        ;se busca la posición de la izquierda
-       2567                           %CLRST          5
-       256C 2454                      bcc             gp_shi_u        ;si no había barco atacado a la izquierda, se busca arriba
-       256E                           %WRITEPOS       #SUNK_SHI       
-       2588 6A0B                      dec             11,x
-       258A                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
-       25A4 6C0B                      inc             11,x            ;se recupera el dato
-       25A6                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
-       25BC                           %RESTORE
-       25C1 39                        rts
+       2555           gp_shi_l        EQU             *
+       2555 E60B                      ldab            11,x
+       2557 C101                      cmpb            #MIN_C
+       2559 276D                      beq             gp_shi_u        ;si está en el borde izquierdo, se continúa
+       255B E60C                      ldab            12,x
+       255D 37                        pshb                            ;se envía la letra (fila)
+       255E E60B                      ldab            11,x
+       2560 5A                        decb                            ;se retrocede a la izquierda
+       2561 37                        pshb                            ;se envía el número (columna)
+       2562 1AEE0E                    ldy             14,x
+       2565 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
+       2567 E608                      ldab            8,x
+       2569 37                        pshb                            ;se envía el jugador atacado
+       256A BD27C6                    jsr             play_src        ;se busca la posición de la izquierda
+       256D                           %CLRST          5
+       2572 2454                      bcc             gp_shi_u        ;si no había barco atacado a la izquierda, se busca arriba
+       2574                           %WRITEPOS       #SUNK_SHI       
+       258E 6A0B                      dec             11,x
+       2590                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
+       25AA 6C0B                      inc             11,x            ;se recupera el dato
+       25AC                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
+       25C2                           %RESTORE
+       25C7 39                        rts
                       
-       25C2           gp_shi_u        EQU             *
-       25C2 E60C                      ldab            12,x
-       25C4 C10A                      cmpb            #MIN_F
-       25C6 276D                      beq             gp_shi_d        ;si está en el borde superior, se continúa
+       25C8           gp_shi_u        EQU             *
        25C8 E60C                      ldab            12,x
-       25CA 5A                        decb                            ;se va a la posición de arriba
-       25CB 37                        pshb                            ;se envía la letra (fila)
-       25CC E60B                      ldab            11,x
-       25CE 37                        pshb                            ;se envía el num (columna)
-       25CF 1AEE0E                    ldy             14,x
-       25D2 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
-       25D4 E608                      ldab            8,x
-       25D6 37                        pshb                            ;se envía el jugador atacado
-       25D7 BD27C0                    jsr             play_src        ;se busca la posición de arriba
-       25DA                           %CLRST          5
-       25DF 2454                      bcc             gp_shi_d        ;si no había barco atacado arriba, se busca abajo
-       25E1                           %WRITEPOS       #SUNK_SHI       
-       25FB 6A0C                      dec             12,x
-       25FD                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
-       2617 6C0C                      inc             12,x            ;se recupera el dato
-       2619                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
-       262F                           %RESTORE
-       2634 39                        rts
+       25CA C10A                      cmpb            #MIN_F
+       25CC 276D                      beq             gp_shi_d        ;si está en el borde superior, se continúa
+       25CE E60C                      ldab            12,x
+       25D0 5A                        decb                            ;se va a la posición de arriba
+       25D1 37                        pshb                            ;se envía la letra (fila)
+       25D2 E60B                      ldab            11,x
+       25D4 37                        pshb                            ;se envía el num (columna)
+       25D5 1AEE0E                    ldy             14,x
+       25D8 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
+       25DA E608                      ldab            8,x
+       25DC 37                        pshb                            ;se envía el jugador atacado
+       25DD BD27C6                    jsr             play_src        ;se busca la posición de arriba
+       25E0                           %CLRST          5
+       25E5 2454                      bcc             gp_shi_d        ;si no había barco atacado arriba, se busca abajo
+       25E7                           %WRITEPOS       #SUNK_SHI       
+       2601 6A0C                      dec             12,x
+       2603                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
+       261D 6C0C                      inc             12,x            ;se recupera el dato
+       261F                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
+       2635                           %RESTORE
+       263A 39                        rts
                       
-       2635           gp_shi_d        EQU             *
-       2635 E60C                      ldab            12,x
-       2637 C10F                      cmpb            #MAX_F
-       2639 276D                      beq             gp_shi_h        ;si está en el borde inferior, se continúa
+       263B           gp_shi_d        EQU             *
        263B E60C                      ldab            12,x
-       263D 5C                        incb                            ;se va a la posición de abajo
-       263E 37                        pshb                            ;se envía la letra (fila)
-       263F E60B                      ldab            11,x
-       2641 37                        pshb                            ;se envía el num (columna)
-       2642 1AEE0E                    ldy             14,x
-       2645 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
-       2647 E608                      ldab            8,x
-       2649 37                        pshb                            ;se envía el jugador atacado
-       264A BD27C0                    jsr             play_src        ;se busca la posición de abajo
-       264D                           %CLRST          5
-       2652 2454                      bcc             gp_shi_h        ;si no había barco atacado abajo, el carguero está tocado
-       2654                           %WRITEPOS       #SUNK_SHI       
-       266E 6C0C                      inc             12,x
-       2670                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
-       268A 6A0C                      dec             12,x            ;se recupera el dato
-       268C                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
-       26A2                           %RESTORE
-       26A7 39                        rts
+       263D C10F                      cmpb            #MAX_F
+       263F 276D                      beq             gp_shi_h        ;si está en el borde inferior, se continúa
+       2641 E60C                      ldab            12,x
+       2643 5C                        incb                            ;se va a la posición de abajo
+       2644 37                        pshb                            ;se envía la letra (fila)
+       2645 E60B                      ldab            11,x
+       2647 37                        pshb                            ;se envía el num (columna)
+       2648 1AEE0E                    ldy             14,x
+       264B 183C                      pshy                            ;se envía el inicio del arreglo de barcos atacados
+       264D E608                      ldab            8,x
+       264F 37                        pshb                            ;se envía el jugador atacado
+       2650 BD27C6                    jsr             play_src        ;se busca la posición de abajo
+       2653                           %CLRST          5
+       2658 2454                      bcc             gp_shi_h        ;si no había barco atacado abajo, el carguero está tocado
+       265A                           %WRITEPOS       #SUNK_SHI       
+       2674 6C0C                      inc             12,x
+       2676                           %WRITEPOS       #SUNK_SHI       ;se "hunde" a TODO el carguero
+       2690 6A0C                      dec             12,x            ;se recupera el dato
+       2692                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
+       26A8                           %RESTORE
+       26AD 39                        rts
                       
-       26A8           gp_shi_h        EQU             *
-       26A8                           %WRITEPOS       #HIT            ;se marca al carguero como tocado
-       26C2                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
-       26D8                           %RESTORE
-       26DD 39                        rts
+       26AE           gp_shi_h        EQU             *
+       26AE                           %WRITEPOS       #HIT            ;se marca al carguero como tocado
+       26C8                           %PLAY_WRT                       ;se agrega la posición al array de barcos atacados
+       26DE                           %RESTORE
+       26E3 39                        rts
                       
                       *==========================================================================
                       * subrutina def_ships
@@ -931,51 +935,51 @@
                       * Devuelve: Cantidad de cargueros y submarinos en memorias correspondientes.
                       * Requiere:
                       *==========================================================================
-       26DE           def_ships       EQU             *
-       26DE                           %BACKUP
+       26E4           def_ships       EQU             *
+       26E4                           %BACKUP
                       
-       26E3           wait_nsu        EQU             *
-       26E3 CE42D6                    ldx             #subm
-       26E6 BD290E                    jsr             show
+       26E9           wait_nsu        EQU             *
+       26E9 CE42CE                    ldx             #subm
+       26EC BD2914                    jsr             show
                       
-       26E9 BD2922                    jsr             read_kb
-       26EC 4D                        tsta
-       26ED 2BF4                      bmi             wait_nsu
-       26EF 36                        psha
-       26F0                           %EXPECT         B_fire
-       26FA 32                        pula
+       26EF BD2928                    jsr             read_kb
+       26F2 4D                        tsta
+       26F3 2BF4                      bmi             wait_nsu
+       26F5 36                        psha
+       26F6                           %EXPECT         B_fire
+       2700 32                        pula
                       
-       26FB CE4265                    ldx             #kb_value
-       26FE 16                        tab
-       26FF 3A                        abx
-       2700 A600                      ldaa            0,x             ;se obtiene el valor ingresado ya codificado
+       2701 CE4265                    ldx             #kb_value
+       2704 16                        tab
+       2705 3A                        abx
+       2706 A600                      ldaa            0,x             ;se obtiene el valor ingresado ya codificado
                       
-       2702 8105                      cmpa            #SUB            ;se controla que no sea menor al máximo de submarinos
-       2704 22DD                      bhi             wait_nsu
-       2706 B7425B                    staa            cant_sub        ;se guarda la cantidad de submarinos
+       2708 8105                      cmpa            #SUB            ;se controla que no sea menor al máximo de submarinos
+       270A 22DD                      bhi             wait_nsu
+       270C B7425B                    staa            cant_sub        ;se guarda la cantidad de submarinos
                       
-       2709           wait_nsh        EQU             *
-       2709 CE42DB                    ldx             #carg
-       270C BD290E                    jsr             show
+       270F           wait_nsh        EQU             *
+       270F CE42D3                    ldx             #carg
+       2712 BD2914                    jsr             show
                       
-       270F BD2922                    jsr             read_kb
-       2712 4D                        tsta
-       2713 2BF4                      bmi             wait_nsh
-       2715 36                        psha
-       2716                           %EXPECT         B_fire
-       2720 32                        pula
+       2715 BD2928                    jsr             read_kb
+       2718 4D                        tsta
+       2719 2BF4                      bmi             wait_nsh
+       271B 36                        psha
+       271C                           %EXPECT         B_fire
+       2726 32                        pula
                       
-       2721 CE4265                    ldx             #kb_value
-       2724 16                        tab
-       2725 3A                        abx
-       2726 A600                      ldaa            0,x             ;se obtiene el valor ingresado ya codificado
+       2727 CE4265                    ldx             #kb_value
+       272A 16                        tab
+       272B 3A                        abx
+       272C A600                      ldaa            0,x             ;se obtiene el valor ingresado ya codificado
                       
-       2728 8105                      cmpa            #SHI            ;se controla que no sea menor al máximo de submarinos
-       272A 22DD                      bhi             wait_nsh
-       272C B7425C                    staa            cant_shi        ;se guarda la cantidad de submarinos
+       272E 8104                      cmpa            #SHI            ;se controla que no sea menor al máximo de submarinos
+       2730 22DD                      bhi             wait_nsh
+       2732 B7425C                    staa            cant_shi        ;se guarda la cantidad de submarinos
                       
-       272F                           %RESTORE
-       2734 39                        rts
+       2735                           %RESTORE
+       273A 39                        rts
                       
                       *====================================================================================
                       * Subrutina "MIRROR"
@@ -1000,35 +1004,35 @@
                       *
                       *====================================================================================
                       
-       2735           mirror          EQU             *       
+       273B           mirror          EQU             *       
                               
-       2735                           %BACKUP
-       273A 30                        tsx                             ;creo frame pointer
-       273B A60B                      ldaa            11,x            ;cargo número de jugador
-       273D E608                      ldab            8,x             ;cargo longitud de la copia (del array a copiar)
-       273F 3D                        mul                             ;obtengo offset de jugador
-       2740 E30C                      addd            12,x            ;sumo offset de jugador
-       2742 ED0C                      std             12,x            ;guardo la dirección con offset del array fuente
+       273B                           %BACKUP
+       2740 30                        tsx                             ;creo frame pointer
+       2741 A60B                      ldaa            11,x            ;cargo número de jugador
+       2743 E608                      ldab            8,x             ;cargo longitud de la copia (del array a copiar)
+       2745 3D                        mul                             ;obtengo offset de jugador
+       2746 E30C                      addd            12,x            ;sumo offset de jugador
+       2748 ED0C                      std             12,x            ;guardo la dirección con offset del array fuente
                       
-       2744 A608                      ldaa            8,x             ;cargo longitud de copia en contador
-       2746 2710                      beq             mi_end          ;si es cero, vuelvo desde subrutina
-       2748 1AEE09                    ldy             9,x             ;cargo índice a destino de la copia.
-       274B EE0C                      ldx             12,x            ;cargo índice a array origen de copia.
+       274A A608                      ldaa            8,x             ;cargo longitud de copia en contador
+       274C 2710                      beq             mi_end          ;si es cero, vuelvo desde subrutina
+       274E 1AEE09                    ldy             9,x             ;cargo índice a destino de la copia.
+       2751 EE0C                      ldx             12,x            ;cargo índice a array origen de copia.
                       
-       274D           mi_loop         EQU             *
+       2753           mi_loop         EQU             *
                       
-       274D E600                      ldab            0,x             ;cargo byte a copiar
-       274F 18E700                    stab            0,y             ;copio byte en destino
-       2752 08                        inx                             ;siguiente byte
-       2753 1808                      iny                             ;siguiente byte
-       2755 4A                        deca                            ;decremento contador
-       2756 26F5                      bne             mi_loop
+       2753 E600                      ldab            0,x             ;cargo byte a copiar
+       2755 18E700                    stab            0,y             ;copio byte en destino
+       2758 08                        inx                             ;siguiente byte
+       2759 1808                      iny                             ;siguiente byte
+       275B 4A                        deca                            ;decremento contador
+       275C 26F5                      bne             mi_loop
                       
-       2758           mi_end          EQU             *
+       275E           mi_end          EQU             *
                       
-       2758                           %RESTORE
+       275E                           %RESTORE
                               
-       275D 39                        rts     
+       2763 39                        rts     
                                       
                                                       
                       *====================================================================================
@@ -1059,36 +1063,36 @@
                       *
                       *====================================================================================
                       
-       275E           fetchpos        EQU             *
+       2764           fetchpos        EQU             *
                       
-       275E                           %BACKUP
-       2763 30                        tsx                             ;creo frame pointer
-       2764 A608                      ldaa            8,x             ;cargo numero de jugador
-       2766 C624                      ldab            #ARRAY_L        ;cargo longitud del arreglo (MAX 255 bytes)
-       2768 3D                        mul                             ;obtengo offset de jugador
-       2769 E309                      addd            9,x             ;sumo offset de jugador a top of array
-       276B ED09                      std             9,x             ;obtengo direccion al arreglo del jugador
+       2764                           %BACKUP
+       2769 30                        tsx                             ;creo frame pointer
+       276A A608                      ldaa            8,x             ;cargo numero de jugador
+       276C C624                      ldab            #ARRAY_L        ;cargo longitud del arreglo (MAX 255 bytes)
+       276E 3D                        mul                             ;obtengo offset de jugador
+       276F E309                      addd            9,x             ;sumo offset de jugador a top of array
+       2771 ED09                      std             9,x             ;obtengo direccion al arreglo del jugador
                       
-       276D A60C                      ldaa            12,x            ;cargo coordenada letra (FILA)
-       276F C60A                      ldab            #NORM           ;cargo valor de normalización de filas
-       2771 10                        sba                             ;obtengo numero de fila
-       2772 C606                      ldab            #COL            ;cargo longitud de fila
-       2774 3D                        mul                             ;obtengo offset de fila
-       2775 E309                      addd            9,x             ;sumo offset de fila a la dirección del arreglo del jugador
-       2777 ED09                      std             9,x             ;obtengo dirección a la fila que se desea
+       2773 A60C                      ldaa            12,x            ;cargo coordenada letra (FILA)
+       2775 C60A                      ldab            #NORM           ;cargo valor de normalización de filas
+       2777 10                        sba                             ;obtengo numero de fila
+       2778 C606                      ldab            #COL            ;cargo longitud de fila
+       277A 3D                        mul                             ;obtengo offset de fila
+       277B E309                      addd            9,x             ;sumo offset de fila a la dirección del arreglo del jugador
+       277D ED09                      std             9,x             ;obtengo dirección a la fila que se desea
                       
-       2779 E60B                      ldab            11,x            ;cargo coordenada (offset) de columna
-       277B 5A                        decb                            ;normalizo offset de columna
-       277C 4F                        clra                            ;borro AccA para tener el valor de AccB en AccD
-       277D E309                      addd            9,x             ;sumo offset de columna a la dirección temporal
-       277F ED09                      std             9,x             ;guardo en stack la dirección del byte a consultar
+       277F E60B                      ldab            11,x            ;cargo coordenada (offset) de columna
+       2781 5A                        decb                            ;normalizo offset de columna
+       2782 4F                        clra                            ;borro AccA para tener el valor de AccB en AccD
+       2783 E309                      addd            9,x             ;sumo offset de columna a la dirección temporal
+       2785 ED09                      std             9,x             ;guardo en stack la dirección del byte a consultar
                       
-       2781 1AEE09                    ldy             9,x             ;cargo en IY la dirección del byte que se desea obtener
-       2784 18A600                    ldaa            0,y             ;cargo el byte a devolver en AccA
-       2787 A70C                      staa            12,x            ;guardo el byte a devolver en stack
-       2789                           %RESTORE
+       2787 1AEE09                    ldy             9,x             ;cargo en IY la dirección del byte que se desea obtener
+       278A 18A600                    ldaa            0,y             ;cargo el byte a devolver en AccA
+       278D A70C                      staa            12,x            ;guardo el byte a devolver en stack
+       278F                           %RESTORE
                                       
-       278E 39                        rts
+       2794 39                        rts
                                       
                                       
                       
@@ -1118,36 +1122,36 @@
                       *
                       *====================================================================================
                       
-       278F           writepos        EQU             *
+       2795           writepos        EQU             *
                       
-       278F                           %BACKUP
-       2794 30                        tsx                             ;creo frame pointer
-       2795 A608                      ldaa            8,x             ;cargo numero de jugador
-       2797 C624                      ldab            #ARRAY_L        ;cargo longitud del arreglo (MAX 255 bytes)
-       2799 3D                        mul                             ;obtengo offset de jugador
-       279A E309                      addd            9,x             ;sumo offset de jugador a top of array
-       279C ED09                      std             9,x             ;obtengo direccion al arreglo del jugador
+       2795                           %BACKUP
+       279A 30                        tsx                             ;creo frame pointer
+       279B A608                      ldaa            8,x             ;cargo numero de jugador
+       279D C624                      ldab            #ARRAY_L        ;cargo longitud del arreglo (MAX 255 bytes)
+       279F 3D                        mul                             ;obtengo offset de jugador
+       27A0 E309                      addd            9,x             ;sumo offset de jugador a top of array
+       27A2 ED09                      std             9,x             ;obtengo direccion al arreglo del jugador
                       
-       279E A60C                      ldaa            12,x            ;cargo coordenada letra (FILA)
-       27A0 C60A                      ldab            #NORM           ;cargo valor de normalización de filas
-       27A2 10                        sba                             ;obtengo numero de fila
-       27A3 C606                      ldab            #COL            ;cargo longitud de fila
-       27A5 3D                        mul                             ;obtengo offset de fila
-       27A6 E309                      addd            9,x             ;sumo offset de fila a la dirección del arreglo del jugador
-       27A8 ED09                      std             9,x             ;obtengo dirección a la fila que se desea
+       27A4 A60C                      ldaa            12,x            ;cargo coordenada letra (FILA)
+       27A6 C60A                      ldab            #NORM           ;cargo valor de normalización de filas
+       27A8 10                        sba                             ;obtengo numero de fila
+       27A9 C606                      ldab            #COL            ;cargo longitud de fila
+       27AB 3D                        mul                             ;obtengo offset de fila
+       27AC E309                      addd            9,x             ;sumo offset de fila a la dirección del arreglo del jugador
+       27AE ED09                      std             9,x             ;obtengo dirección a la fila que se desea
                       
-       27AA E60B                      ldab            11,x            ;cargo coordenada (offset) de columna
-       27AC 5A                        decb                            ;normalizo offset de columna
-       27AD 4F                        clra                            ;borro AccA para tener el valor de AccB en AccD
-       27AE E309                      addd            9,x             ;sumo offset de columna a la dirección temporal
-       27B0 ED09                      std             9,x             ;guardo en stack la dirección del byte a consultar
+       27B0 E60B                      ldab            11,x            ;cargo coordenada (offset) de columna
+       27B2 5A                        decb                            ;normalizo offset de columna
+       27B3 4F                        clra                            ;borro AccA para tener el valor de AccB en AccD
+       27B4 E309                      addd            9,x             ;sumo offset de columna a la dirección temporal
+       27B6 ED09                      std             9,x             ;guardo en stack la dirección del byte a consultar
                       
-       27B2 1AEE09                    ldy             9,x             ;cargo en IY la dirección donde se desea escribir
-       27B5 A60D                      ldaa            13,x            ;cargo en AccA el byte que se quiere escribir en el arreglo
-       27B7 18A700                    staa            0,y             ;escribo el byte sobre el arreglo
-       27BA                           %RESTORE
+       27B8 1AEE09                    ldy             9,x             ;cargo en IY la dirección donde se desea escribir
+       27BB A60D                      ldaa            13,x            ;cargo en AccA el byte que se quiere escribir en el arreglo
+       27BD 18A700                    staa            0,y             ;escribo el byte sobre el arreglo
+       27C0                           %RESTORE
                                       
-       27BF 39                        rts
+       27C5 39                        rts
                       *====================================================================================
                       * Subrutina "PLAY_SRC"
                       *
@@ -1171,46 +1175,46 @@
                       *
                       *====================================================================================
                       
-       27C0           play_src        EQU             *               
+       27C6           play_src        EQU             *               
                                               
-       27C0                           %BACKUP
-       27C5 30                        tsx                             ;creo frame pointer
-       27C6 A608                      ldaa            8,x             ;cargo número de array (jugador)
-       27C8 C61F                      ldab            #HITSIZE        ;cargo tamaño de array de 1 jugador
-       27CA 3D                        mul                             ;obtengo offset de jugador
-       27CB E309                      addd            9,x             ;sumo el offset de jugador al puntero al array
-       27CD 188F                      xgdy                            ;obtengo puntero al array del jugador deseado
+       27C6                           %BACKUP
+       27CB 30                        tsx                             ;creo frame pointer
+       27CC A608                      ldaa            8,x             ;cargo número de array (jugador)
+       27CE C61B                      ldab            #HITSIZE        ;cargo tamaño de array de 1 jugador
+       27D0 3D                        mul                             ;obtengo offset de jugador
+       27D1 E309                      addd            9,x             ;sumo el offset de jugador al puntero al array
+       27D3 188F                      xgdy                            ;obtengo puntero al array del jugador deseado
                       
-       27CF           ps_loop         EQU             *
+       27D5           ps_loop         EQU             *
                       
-       27CF 18A600                    ldaa            0,y             ;cargo byte1 a comparar
-       27D2 2718                      beq             ps_ntfnd        ;si encontré el terminador, el valor requerido no está en el array
+       27D5 18A600                    ldaa            0,y             ;cargo byte1 a comparar
+       27D8 2718                      beq             ps_ntfnd        ;si encontré el terminador, el valor requerido no está en el array
                       
-       27D4 A10C                      cmpa            12,x            ;comparo con el byte1 a buscar
-       27D6 2706                      beq             ps_next         ;si coinciden, busco el byte 2
-       27D8 1808                      iny                             ;me posiciono sobre siguiente byte1 a comparar
-       27DA 1808                      iny
-       27DC 20F1                      bra             ps_loop         ;vuelvo a comparar
+       27DA A10C                      cmpa            12,x            ;comparo con el byte1 a buscar
+       27DC 2706                      beq             ps_next         ;si coinciden, busco el byte 2
+       27DE 1808                      iny                             ;me posiciono sobre siguiente byte1 a comparar
+       27E0 1808                      iny
+       27E2 20F1                      bra             ps_loop         ;vuelvo a comparar
                       
-       27DE           ps_next         EQU             *
+       27E4           ps_next         EQU             *
                       
-       27DE 18E601                    ldab            1,y             ;cargo byte a continuación del anterior
-       27E1 1808                      iny                             ;me posiciono sobre siguiente byte1 a comparar
-       27E3 1808                      iny
-       27E5 E10B                      cmpb            11,x            ;comparo con byte2
-       27E7 26E6                      bne             ps_loop         ;si no son iguales, sigo buscando
-       27E9 0D                        sec                             ;set del carry para informar que se encontró el valor
-       27EA 2001                      bra             ps_end
+       27E4 18E601                    ldab            1,y             ;cargo byte a continuación del anterior
+       27E7 1808                      iny                             ;me posiciono sobre siguiente byte1 a comparar
+       27E9 1808                      iny
+       27EB E10B                      cmpb            11,x            ;comparo con byte2
+       27ED 26E6                      bne             ps_loop         ;si no son iguales, sigo buscando
+       27EF 0D                        sec                             ;set del carry para informar que se encontró el valor
+       27F0 2001                      bra             ps_end
                                               
-       27EC           ps_ntfnd        EQU             *
+       27F2           ps_ntfnd        EQU             *
                       
-       27EC 0C                        clc                             ;carry en 0 para informar que no se encontró el valor
+       27F2 0C                        clc                             ;carry en 0 para informar que no se encontró el valor
                       
-       27ED           ps_end          EQU             *
+       27F3           ps_end          EQU             *
                                       
-       27ED                           %RESTORE
+       27F3                           %RESTORE
                       
-       27F2 39                        rts
+       27F8 39                        rts
                       
                       *====================================================================================
                       * Subrutina "PLAY_CNT"
@@ -1235,32 +1239,32 @@
                       *
                       *====================================================================================
                       
-       27F3           play_cnt        EQU             *
+       27F9           play_cnt        EQU             *
                       
-       27F3                           %BACKUP
-       27F8 30                        tsx                             ;creo frame pointer
-       27F9 A608                      ldaa            8,x             ;cargo número de array (jugador)
-       27FB C61F                      ldab            #HITSIZE        ;cargo tamaño de array de 1 jugador
-       27FD 3D                        mul                             ;obtengo offset de jugador
-       27FE E309                      addd            9,x             ;sumo el offset de jugador al puntero al array
-       2800 188F                      xgdy                            ;obtengo puntero al array del jugador deseado
-       2802 4F                        clra                            ;inicializo contador
+       27F9                           %BACKUP
+       27FE 30                        tsx                             ;creo frame pointer
+       27FF A608                      ldaa            8,x             ;cargo número de array (jugador)
+       2801 C61B                      ldab            #HITSIZE        ;cargo tamaño de array de 1 jugador
+       2803 3D                        mul                             ;obtengo offset de jugador
+       2804 E309                      addd            9,x             ;sumo el offset de jugador al puntero al array
+       2806 188F                      xgdy                            ;obtengo puntero al array del jugador deseado
+       2808 4F                        clra                            ;inicializo contador
                                               
-       2803           pc_loop         EQU             *               
+       2809           pc_loop         EQU             *               
                                               
-       2803 18E600                    ldab            0,y             ;cargo byte a comparar
-       2806 2707                      beq             pc_end          ;si es terminador, terminé de buscar
-       2808 1808                      iny                             ;si no es terminador, me posiciono sobre siguiente dato de 
-       280A 1808                      iny                             ;2 bytes
-       280C 4C                        inca                            ;incremento contador
-       280D 20F4                      bra             pc_loop         ;vuelvo a comparar
+       2809 18E600                    ldab            0,y             ;cargo byte a comparar
+       280C 2707                      beq             pc_end          ;si es terminador, terminé de buscar
+       280E 1808                      iny                             ;si no es terminador, me posiciono sobre siguiente dato de 
+       2810 1808                      iny                             ;2 bytes
+       2812 4C                        inca                            ;incremento contador
+       2813 20F4                      bra             pc_loop         ;vuelvo a comparar
                                               
-       280F           pc_end          EQU             *       
+       2815           pc_end          EQU             *       
                                               
-       280F A70A                      staa            10,x            ;devuelvo valor por stack
-       2811                           %RESTORE
+       2815 A70A                      staa            10,x            ;devuelvo valor por stack
+       2817                           %RESTORE
                                       
-       2816 39                        rts
+       281C 39                        rts
                       
                       
                       *====================================================================================
@@ -1289,34 +1293,34 @@
                       *
                       *====================================================================================
                       
-       2817           play_wrt        EQU             *
+       281D           play_wrt        EQU             *
                       
-       2817                           %BACKUP
-       281C 30                        tsx                             ;creo frame pointer
-       281D A608                      ldaa            8,x             ;cargo número de array (jugador)
-       281F C61F                      ldab            #HITSIZE        ;cargo tamaño de array de 1 jugador
-       2821 3D                        mul                             ;obtengo offset de jugador
-       2822 E309                      addd            9,x             ;sumo el offset de jugador al puntero al array
-       2824 188F                      xgdy                            ;obtengo puntero al array del jugador deseado
+       281D                           %BACKUP
+       2822 30                        tsx                             ;creo frame pointer
+       2823 A608                      ldaa            8,x             ;cargo número de array (jugador)
+       2825 C61B                      ldab            #HITSIZE        ;cargo tamaño de array de 1 jugador
+       2827 3D                        mul                             ;obtengo offset de jugador
+       2828 E309                      addd            9,x             ;sumo el offset de jugador al puntero al array
+       282A 188F                      xgdy                            ;obtengo puntero al array del jugador deseado
                       
                       
-       2826           pw_loop         EQU             *
+       282C           pw_loop         EQU             *
                       
-       2826 18A600                    ldaa            0,y             ;cargo byte del array
-       2829 2704                      beq             pw_end          ;si es cero, entonces escribo los datos
-       282B 1808                      iny                             ;si no es cero, me posiciono sobre la siguiente posición
-       282D 20F7                      bra             pw_loop         ;vuelvo a buscar ceros
+       282C 18A600                    ldaa            0,y             ;cargo byte del array
+       282F 2704                      beq             pw_end          ;si es cero, entonces escribo los datos
+       2831 1808                      iny                             ;si no es cero, me posiciono sobre la siguiente posición
+       2833 20F7                      bra             pw_loop         ;vuelvo a buscar ceros
                       
-       282F           pw_end          EQU             *
+       2835           pw_end          EQU             *
                       
-       282F A60C                      ldaa            12,x            ;cargo primer byte a escribir
-       2831 18A700                    staa            0,y             ;guardo primer byte en memoria
-       2834 1808                      iny                             ;me posiciono en el siguiente byte
-       2836 A60B                      ldaa            11,x            ;cargo segundo byte a escribir
-       2838 18A700                    staa            0,y             ;guardo segundo byte en memoria
-       283B                           %RESTORE
+       2835 A60C                      ldaa            12,x            ;cargo primer byte a escribir
+       2837 18A700                    staa            0,y             ;guardo primer byte en memoria
+       283A 1808                      iny                             ;me posiciono en el siguiente byte
+       283C A60B                      ldaa            11,x            ;cargo segundo byte a escribir
+       283E 18A700                    staa            0,y             ;guardo segundo byte en memoria
+       2841                           %RESTORE
                       
-       2840 39                        rts
+       2846 39                        rts
                       
                       ***************************************************************************************
                       *Subrutina "CLRZONE"
@@ -1333,43 +1337,43 @@
                       *                  - Incluir macros "%BACKUP" y "%RESTORE".
                       *                                       
                       *************************************************************************************** 
-       2841           clrzone         EQU     *
+       2847           clrzone         EQU     *
                       
-       2841                           %BACKUP                         ;backup de registros en stack
+       2847                           %BACKUP                         ;backup de registros en stack
                       
-       2846 30                        tsx
-       2847 A608                      ldaa    8,x                     ;cargo contador con longitud de zona a borrar
-       2849 EE09                      ldx     9,x                     ;cargo puntero zona de memoria a borrar
-       284B D600                      ldab    $00                     ;cargo el cero
-       284D           clr_loop        EQU     *
-       284D E700                      stab    0,x                     ;guardo caracter en posicion del array
-       284F 08                        inx                             ;siguiente posición     
-       2850 4A                        deca                            ;decremento contador
-       2851 26FA                      bne     clr_loop                ;si no es cero, escribo en la posición siguiente.
+       284C 30                        tsx
+       284D A608                      ldaa    8,x                     ;cargo contador con longitud de zona a borrar
+       284F EE09                      ldx     9,x                     ;cargo puntero zona de memoria a borrar
+       2851 D600                      ldab    $00                     ;cargo el cero
+       2853           clr_loop        EQU     *
+       2853 E700                      stab    0,x                     ;guardo caracter en posicion del array
+       2855 08                        inx                             ;siguiente posición     
+       2856 4A                        deca                            ;decremento contador
+       2857 26FA                      bne     clr_loop                ;si no es cero, escribo en la posición siguiente.
                       
-       2853                           %RESTORE                        :restauro backup en registros
+       2859                           %RESTORE                        :restauro backup en registros
                       
-       2858 39                        rts
+       285E 39                        rts
                       
                       *---------------------------------------
                       * WhoPlays: subrutina para ver que 
                       *           jugador juega
                       *---------------------------------------
                       
-       2859           whoplays        EQU             *
+       285F           whoplays        EQU             *
                       
-       2859 BD2922    wait_ply        jsr             read_kb
-       285C 4D                        tsta
-       285D 2BFA                      bmi             wait_ply
-       285F 8103                      cmpa            #B_P1
-       2861 2708                      beq             play_p1
-       2863 8107                      cmpa            #B_P2
-       2865 26F2                      bne             wait_ply
-       2867 8600                      ldaa            #P1
-       2869 2002                      bra             ply_end
+       285F BD2928    wait_ply        jsr             read_kb
+       2862 4D                        tsta
+       2863 2BFA                      bmi             wait_ply
+       2865 8103                      cmpa            #B_P1
+       2867 2708                      beq             play_p1
+       2869 8107                      cmpa            #B_P2
+       286B 26F2                      bne             wait_ply
+       286D 8600                      ldaa            #P1
+       286F 2002                      bra             ply_end
                       
-       286B 8601      play_p1         ldaa            #P2
-       286D 39        ply_end         rts             
+       2871 8601      play_p1         ldaa            #P2
+       2873 39        ply_end         rts             
                       
                       *---------------------------------------
                       * Input: subrutina que devuelve
@@ -1378,245 +1382,245 @@
                       * AccB: Columna de la posicion jugada
                       *---------------------------------------
                       
-       286E           input           EQU             *
+       2874           input           EQU             *
                       
                       * back up de registros
-       286E 3C                        pshx
-       286F 183C                      pshy
+       2874 3C                        pshx
+       2875 183C                      pshy
                       
                       * creo variables locales
-       2871 36                        psha
-       2872 36                        psha
-       2873 36                        psha
+       2877 36                        psha
+       2878 36                        psha
+       2879 36                        psha
                       
                       * inicializo framepointer
-       2874 1830                      tsy
+       287A 1830                      tsy
                       
                       * prendo el led
-       2876                           %LED_INV
+       287C                           %LED_INV
                       
                       * inicializo el contador
-       287E 8603      inp_rest        ldaa            #INPUTS
-       2880 18A700                    staa            CONT,Y
+       2884 8603      inp_rest        ldaa            #INPUTS
+       2886 18A700                    staa            CONT,Y
                                       
                       * limpio el display
-       2883 CE4260                    ldx             #string
-       2886 8604                      ldaa            #4
-       2888 C620                      ldab            #ESP
-       288A BD29EC                    jsr             clrarray
+       2889 CE4260                    ldx             #string
+       288C 8604                      ldaa            #4
+       288E C620                      ldab            #ESP
+       2890 BD29F2                    jsr             clrarray
                       
-       288D BD29DB                    jsr             clr_dis
+       2893 BD29E1                    jsr             clr_dis
                       
-       2890 86FF                      ldaa            #$FF
-       2892 B7425F                    staa            buffer
+       2896 86FF                      ldaa            #$FF
+       2898 B7425F                    staa            buffer
                       
                       * lectura de teclado
-       2895 BD2922    wait_kb         jsr             read_kb
-       2898 4D                        tsta
-       2899 2BFA                      bmi             wait_kb
-       289B B1425F                    cmpa            buffer
-       289E 27F5                      beq             wait_kb
-       28A0 B7425F                    staa            buffer
+       289B BD2928    wait_kb         jsr             read_kb
+       289E 4D                        tsta
+       289F 2BFA                      bmi             wait_kb
+       28A1 B1425F                    cmpa            buffer
+       28A4 27F5                      beq             wait_kb
+       28A6 B7425F                    staa            buffer
                                       
-       28A3 810F                      cmpa            #B_reset
-       28A5 27D7                      beq             inp_rest
-       28A7 8103                      cmpa            #B_P1
-       28A9 27D3                      beq             inp_rest
-       28AB 8107                      cmpa            #B_P2
-       28AD 27CF                      beq             inp_rest
+       28A9 810F                      cmpa            #B_reset
+       28AB 27D7                      beq             inp_rest
+       28AD 8103                      cmpa            #B_P1
+       28AF 27D3                      beq             inp_rest
+       28B1 8107                      cmpa            #B_P2
+       28B3 27CF                      beq             inp_rest
                       
-       28AF 186A00                    dec             CONT,Y
-       28B2 272B                      beq             chk_fire
-       28B4 810B                      cmpa            #B_fire
-       28B6 27C6                      beq             inp_rest
-       28B8 36                        psha
-       28B9 CE4265                    ldx             #kb_value
-       28BC 16                        tab
-       28BD 3A                        abx
-       28BE A600                      ldaa            0,X             
-       28C0 183C                      pshy
-       28C2 18E600                    ldab            CONT,Y
-       28C5 183A                      aby
-       28C7 18A700                    staa            0,Y
-       28CA 1838                      puly
+       28B5 186A00                    dec             CONT,Y
+       28B8 272B                      beq             chk_fire
+       28BA 810B                      cmpa            #B_fire
+       28BC 27C6                      beq             inp_rest
+       28BE 36                        psha
+       28BF CE4265                    ldx             #kb_value
+       28C2 16                        tab
+       28C3 3A                        abx
+       28C4 A600                      ldaa            0,X             
+       28C6 183C                      pshy
+       28C8 18E600                    ldab            CONT,Y
+       28CB 183A                      aby
+       28CD 18A700                    staa            0,Y
+       28D0 1838                      puly
                       
-       28CC 33                        pulb
-       28CD BD29CB                    jsr             to_ascii
-       28D0 17                        tba
+       28D2 33                        pulb
+       28D3 BD29D1                    jsr             to_ascii
+       28D6 17                        tba
                                       
-       28D1 CE4260                    ldx             #string
-       28D4 BD29BB                    jsr             sh_value
-                      
        28D7 CE4260                    ldx             #string
-       28DA BD290E                    jsr             show
+       28DA BD29C1                    jsr             sh_value
                       
-       28DD 20B6                      bra             wait_kb
+       28DD CE4260                    ldx             #string
+       28E0 BD2914                    jsr             show
                       
-       28DF 810B      chk_fire        cmpa            #B_fire
-       28E1 269B                      bne             inp_rest
-       28E3 18A602                    ldaa            FILA_L,Y
-       28E6 810A                      cmpa            #MIN_FIL
-       28E8 2594                      blo             inp_rest
-       28EA 810F                      cmpa            #MAX_FIL
-       28EC 2290                      bhi             inp_rest
-       28EE 18A601                    ldaa            COL_L,Y
-       28F1 8101                      cmpa            #MIN_COL
-       28F3 2589                      blo             inp_rest
-       28F5 8106                      cmpa            #MAX_COL
-       28F7 2285                      bhi             inp_rest
+       28E3 20B6                      bra             wait_kb
+                      
+       28E5 810B      chk_fire        cmpa            #B_fire
+       28E7 269B                      bne             inp_rest
+       28E9 18A602                    ldaa            FILA_L,Y
+       28EC 810A                      cmpa            #MIN_FIL
+       28EE 2594                      blo             inp_rest
+       28F0 810F                      cmpa            #MAX_FIL
+       28F2 2290                      bhi             inp_rest
+       28F4 18A601                    ldaa            COL_L,Y
+       28F7 8101                      cmpa            #MIN_COL
+       28F9 2589                      blo             inp_rest
+       28FB 8106                      cmpa            #MAX_COL
+       28FD 2285                      bhi             inp_rest
                       
                       * apago el led
-       28F9                           %LED_INV
+       28FF                           %LED_INV
                       
                       * libero variables locales
-       2901 32                        pula
-       2902 32                        pula
-       2903 32                        pula
+       2907 32                        pula
+       2908 32                        pula
+       2909 32                        pula
                       
-       2904 18A602    return          ldaa            FILA_L,Y
-       2907 18E601                    ldab            COL_L,Y         
+       290A 18A602    return          ldaa            FILA_L,Y
+       290D 18E601                    ldab            COL_L,Y         
                       
                       * restore de registros
-       290A 1838                      puly
-       290C 38                        pulx
+       2910 1838                      puly
+       2912 38                        pulx
                       
-       290D 39                        rts
+       2913 39                        rts
                       
                       *------------------------------------
                       * Show: Por IX direccion de string de
                       *       4 caracteres para imprimir
                       *------------------------------------
                       
-       290E           show            EQU             *
+       2914           show            EQU             *
                       
                       * back up de registros
-       290E 3C                        pshx
-       290F 37                        pshb
-       2910 36                        psha
+       2914 3C                        pshx
+       2915 37                        pshb
+       2916 36                        psha
                       
                       * inicializo contador de posiciones
-       2911 C604                      ldab            #LENGTH
+       2917 C604                      ldab            #LENGTH
                                       
                       * loop para enviar a cada posicion
-       2913 5A        sh_loop         decb
-       2914 2B08                      bmi             sh_end          ; si no pase por todas las posiciones
-       2916 A600                      ldaa            0,X             ; tomo del string el caracter
-       2918 BD29D4                    jsr             outchar         ; y lo imprimo en la posicion actual
-       291B 08                        inx
-       291C 20F5                      bra             sh_loop
+       2919 5A        sh_loop         decb
+       291A 2B08                      bmi             sh_end          ; si no pase por todas las posiciones
+       291C A600                      ldaa            0,X             ; tomo del string el caracter
+       291E BD29DA                    jsr             outchar         ; y lo imprimo en la posicion actual
+       2921 08                        inx
+       2922 20F5                      bra             sh_loop
                       
                       * restore de registros                          
-       291E 32        sh_end          pula
-       291F 33                        pulb
-       2920 38                        pulx
-       2921 39                        rts
+       2924 32        sh_end          pula
+       2925 33                        pulb
+       2926 38                        pulx
+       2927 39                        rts
                       
                       *----------------------------------------------
                       * read_kb: AccA: tecla presionada
                       *          o -1
                       *----------------------------------------------
                       
-       2922           read_kb         EQU             *
+       2928           read_kb         EQU             *
                       
                       * back up de registros
-       2922 3C                        pshx
-       2923 37                        pshb
+       2928 3C                        pshx
+       2929 37                        pshb
                       
                       * creo espacio para variables locales
-       2924                           %MALLOC         1               ; variable mascara de filas
-       292B                           %MALLOC         1               ; variable mascara de columnas
-       2932                           %MALLOC         1               ; variable contador de columnas
-       2939                           %MALLOC         1               ; variable contador de tecla
+       292A                           %MALLOC         1               ; variable mascara de filas
+       2931                           %MALLOC         1               ; variable mascara de columnas
+       2938                           %MALLOC         1               ; variable contador de columnas
+       293F                           %MALLOC         1               ; variable contador de tecla
                       
                       * inicializacion de variables
-       2940 30                        tsx                             ; framepointer para acceder a locales
-       2941 C604                      ldab            #LENGTH         ; contador de fila
-       2943 860E                      ldaa            #FIL0           ; mascara para la fila cero
-       2945 A703                      staa            MASK_FIL,X      
-       2947 8610                      ldaa            #COL0           ; mascara para la columna cero
-       2949 A702                      staa            MASK_COL,X
-       294B 4F                        clra                            ; contador de columna
-       294C A701                      staa            COL_CONT,X
-       294E A700                      staa            KB_PRESS,X      ; variable con numero de tecla
+       2946 30                        tsx                             ; framepointer para acceder a locales
+       2947 C604                      ldab            #LENGTH         ; contador de fila
+       2949 860E                      ldaa            #FIL0           ; mascara para la fila cero
+       294B A703                      staa            MASK_FIL,X      
+       294D 8610                      ldaa            #COL0           ; mascara para la columna cero
+       294F A702                      staa            MASK_COL,X
+       2951 4F                        clra                            ; contador de columna
+       2952 A701                      staa            COL_CONT,X
+       2954 A700                      staa            KB_PRESS,X      ; variable con numero de tecla
                       
                       * loop para barrer y mirar teclado matricial
-       2950 86FF      kb_loop         ldaa            #NONE
-       2952 5A                        decb                            
-       2953 2B2C                      bmi             kb_end          ; me fijo si recorrio todas las filas
-       2955 A603                      ldaa            MASK_FIL,X      ; enmascaro la siguiente fila
-       2957 B71003                    staa            ROWS
-       295A 0D                        sec                             ; carry para rotacion de byte
-       295B 49                        rola                            
-       295C A703                      staa            MASK_FIL,X      ; cambio variable mascara para la proxima fila
+       2956 86FF      kb_loop         ldaa            #NONE
+       2958 5A                        decb                            
+       2959 2B2C                      bmi             kb_end          ; me fijo si recorrio todas las filas
+       295B A603                      ldaa            MASK_FIL,X      ; enmascaro la siguiente fila
+       295D B71003                    staa            ROWS
+       2960 0D                        sec                             ; carry para rotacion de byte
+       2961 49                        rola                            
+       2962 A703                      staa            MASK_FIL,X      ; cambio variable mascara para la proxima fila
                       
-       295E 8604                      ldaa            #LENGTH
-       2960 A701                      staa            COL_CONT,X
-       2962 8610                      ldaa            #COL0           ; inicializo variable para barrer
-       2964 A702                      staa            MASK_COL,X      ; la columna
+       2964 8604                      ldaa            #LENGTH
+       2966 A701                      staa            COL_CONT,X
+       2968 8610                      ldaa            #COL0           ; inicializo variable para barrer
+       296A A702                      staa            MASK_COL,X      ; la columna
                       
-       2966 6A01      kb_col          dec             COL_CONT,X      ; me fijo si barrio todas las columnas
-       2968 2BE6                      bmi             kb_loop
-       296A B61005                    ldaa            COLS            ; leo el puerto de columnas
-       296D A402                      anda            MASK_COL,X      ; enmascaro columna
-       296F 2707                      beq             kb_hit          ; si es nulo apretaron un boton
-       2971 48                        lsla                            ; cambio mascara para proxima columna
-       2972 A702                      staa            MASK_COL,X
-       2974 6C00                      inc             KB_PRESS,X      ; incremento numero de tecla
-       2976 20EE                      bra             kb_col
+       296C 6A01      kb_col          dec             COL_CONT,X      ; me fijo si barrio todas las columnas
+       296E 2BE6                      bmi             kb_loop
+       2970 B61005                    ldaa            COLS            ; leo el puerto de columnas
+       2973 A402                      anda            MASK_COL,X      ; enmascaro columna
+       2975 2707                      beq             kb_hit          ; si es nulo apretaron un boton
+       2977 48                        lsla                            ; cambio mascara para proxima columna
+       2978 A702                      staa            MASK_COL,X
+       297A 6C00                      inc             KB_PRESS,X      ; incremento numero de tecla
+       297C 20EE                      bra             kb_col
                       
-       2978 A600      kb_hit          ldaa            KB_PRESS,X      ; apretaron una tecla, lo comparo
-       297A B1425E                    cmpa            kb_buff         ; con la que fue apretada antes
-       297D 2602                      bne             kb_end          ; aviso por led
+       297E A600      kb_hit          ldaa            KB_PRESS,X      ; apretaron una tecla, lo comparo
+       2980 B1425E                    cmpa            kb_buff         ; con la que fue apretada antes
+       2983 2602                      bne             kb_end          ; aviso por led
                       
-       297F 86FF      kb_none         ldaa            #NONE           ; en caso de que no apreten nada
+       2985 86FF      kb_none         ldaa            #NONE           ; en caso de que no apreten nada
                       
-       2981 B7425E    kb_end          staa            kb_buff         ; actualizo variable
+       2987 B7425E    kb_end          staa            kb_buff         ; actualizo variable
                                               
                       * elimino variables locales
-       2984                           %RELMEM         1
-       298B                           %RELMEM         1
-       2992                           %RELMEM         1
-       2999                           %RELMEM         1
+       298A                           %RELMEM         1
+       2991                           %RELMEM         1
+       2998                           %RELMEM         1
+       299F                           %RELMEM         1
                       
                       * restore de registros
-       29A0 33                        pulb
-       29A1 38                        pulx
+       29A6 33                        pulb
+       29A7 38                        pulx
                                       
-       29A2 39                        rts
+       29A8 39                        rts
                       
                       *----------------------------------------------
                       * init_kb: subrutina para inicializar teclado
                       *----------------------------------------------
                       
-       29A3           init_kb         EQU             *
+       29A9           init_kb         EQU             *
                       
                       * back up de registros
-       29A3 36                        psha
+       29A9 36                        psha
                       
                       * inicializacion de teclado             
-       29A4 86FF                      ldaa            #NONE
-       29A6 B7425E                    staa            kb_buff
+       29AA 86FF                      ldaa            #NONE
+       29AC B7425E                    staa            kb_buff
                       
                       * restore de registros
-       29A9 32                        pula
-       29AA 39                        rts
+       29AF 32                        pula
+       29B0 39                        rts
                       
                       *--------------------------------
                       * Inicializa display (y teclado)
                       *--------------------------------
                       
-       29AB           initdis         EQU             *
+       29B1           initdis         EQU             *
                               
-       29AB 36                        psha
+       29B1 36                        psha
                       
-       29AC 860F                      ldaa            #$0F       ;set for input/output
-       29AE B71007                    staa            DDRC       ;C output
-       29B1 B61002                    ldaa            PIOC       ;get current value
-       29B4 84FE                      anda            #$FE       ;reset bit 0 to 0
-       29B6 B71002                    staa            PIOC       ;send it out
+       29B2 860F                      ldaa            #$0F       ;set for input/output
+       29B4 B71007                    staa            DDRC       ;C output
+       29B7 B61002                    ldaa            PIOC       ;get current value
+       29BA 84FE                      anda            #$FE       ;reset bit 0 to 0
+       29BC B71002                    staa            PIOC       ;send it out
                               
-       29B9 32                        pula
-       29BA 39                        rts
+       29BF 32                        pula
+       29C0 39                        rts
                       
                       *--------------------------------------------------------------
                       * sh_value: toma un string, desplaza los caracteres a izquierda
@@ -1625,25 +1629,25 @@
                       *           AccA: nuevo valor
                       *--------------------------------------------------------------
                       
-       29BB           sh_value        EQU             *
+       29C1           sh_value        EQU             *
                       
                       * back up de registros
-       29BB 3C                        pshx
-       29BC 37                        pshb
+       29C1 3C                        pshx
+       29C2 37                        pshb
                       
                       * loop para desplazar caracteres
-       29BD E601      v_loop          ldab            1,X             ;tomo elemento siguiente en string
-       29BF 2705                      beq             v_end
-       29C1 E700                      stab            0,X             ;y lo guardo en posicion actual
-       29C3 08                        inx
-       29C4 20F7                      bra             v_loop          
+       29C3 E601      v_loop          ldab            1,X             ;tomo elemento siguiente en string
+       29C5 2705                      beq             v_end
+       29C7 E700                      stab            0,X             ;y lo guardo en posicion actual
+       29C9 08                        inx
+       29CA 20F7                      bra             v_loop          
                       
-       29C6 A700      v_end           staa            0,X             ;ingresa nuevo caracter en cadena desplazada
+       29CC A700      v_end           staa            0,X             ;ingresa nuevo caracter en cadena desplazada
                       
                       * restore de registros
-       29C8 33                        pulb
-       29C9 38                        pulx
-       29CA 39                        rts
+       29CE 33                        pulb
+       29CF 38                        pulx
+       29D0 39                        rts
                       
                       *----------------------------------------------
                       * toAscii: toma numero de boton del teclado
@@ -1653,55 +1657,55 @@
                       *          devuelve AccB: ascii
                       *----------------------------------------------
                       
-       29CB           to_ascii        EQU             *
+       29D1           to_ascii        EQU             *
                       
                       * back up de registros
-       29CB 3C                        pshx
+       29D1 3C                        pshx
                       
                       * inicializacion de variables
-       29CC CE4275                    ldx             #kb_ascii       ; apunto a string con caracteres asignados por tecla
-       29CF 3A                        abx                             ; me muevo en string con indice y recupero segun tecla presionada
-       29D0 E600                      ldab            0,X             
+       29D2 CE4275                    ldx             #kb_ascii       ; apunto a string con caracteres asignados por tecla
+       29D5 3A                        abx                             ; me muevo en string con indice y recupero segun tecla presionada
+       29D6 E600                      ldab            0,X             
                       
                       * restore de registros
-       29D2 38                        pulx
-       29D3 39                        rts
+       29D8 38                        pulx
+       29D9 39                        rts
                       
                       *--------------------------------
                       *Outchar: ACCA: Carácter a enviar
                       *           ACCB: Posición (0-3)
                       *--------------------------------
-       29D4           outchar         EQU             *
+       29DA           outchar         EQU             *
                               
-       29D4 F71005                    stab            PORTCL          ;set the position 
-       29D7 B71004                    staa            PORTB           ;set the character
+       29DA F71005                    stab            PORTCL          ;set the position 
+       29DD B71004                    staa            PORTB           ;set the character
                               
-       29DA 39                        rts
+       29E0 39                        rts
                       
                       *-------------------------
                       * clr_dis: Limpia display
                       *-------------------------
                       
-       29DB           clr_dis         EQU             *
+       29E1           clr_dis         EQU             *
                       
                       * hago back up de registros
-       29DB 37                        pshb
-       29DC 36                        psha
+       29E1 37                        pshb
+       29E2 36                        psha
                       
                       * inicializo el contador de posiciones
-       29DD C604                      ldab            #LENGTH
+       29E3 C604                      ldab            #LENGTH
                       
                       * loop para limpiar cada posicion
-       29DF 5A        clrloop         decb
-       29E0 2B07                      bmi             clr_end         ; si no pase por todas las posiciones
-       29E2 8620                      ldaa            #ESP            ; cargo en esta posicion espacio blanco
-       29E4 BD29D4                    jsr             outchar         ; y lo envio
-       29E7 20F6                      bra             clrloop         
+       29E5 5A        clrloop         decb
+       29E6 2B07                      bmi             clr_end         ; si no pase por todas las posiciones
+       29E8 8620                      ldaa            #ESP            ; cargo en esta posicion espacio blanco
+       29EA BD29DA                    jsr             outchar         ; y lo envio
+       29ED 20F6                      bra             clrloop         
                       
                       * restore de registros
-       29E9 32        clr_end         pula
-       29EA 33                        pulb
-       29EB 39                        rts
+       29EF 32        clr_end         pula
+       29F0 33                        pulb
+       29F1 39                        rts
                       
                       *-------------------------------------------------------
                       * clrarray: subrutina para limpiar un array dado
@@ -1710,16 +1714,16 @@
                       *             AccB caracter a poner
                       *-------------------------------------------------------
                       
-       29EC           clrarray        EQU             *
+       29F2           clrarray        EQU             *
                                       
-       29EC 4A        cra_loop        deca                            ;contador con cantidad de elementos a limpiar
-       29ED 2705                      beq             cra_end
-       29EF E700                      stab            0,X             ;reemplazar elemento por caracter a poner
-       29F1 08                        inx
-       29F2 20F8                      bra             cra_loop
+       29F2 4A        cra_loop        deca                            ;contador con cantidad de elementos a limpiar
+       29F3 2705                      beq             cra_end
+       29F5 E700                      stab            0,X             ;reemplazar elemento por caracter a poner
+       29F7 08                        inx
+       29F8 20F8                      bra             cra_loop
                                       
-       29F4 E700      cra_end         stab            0,X
-       29F6 39                        rts
+       29FA E700      cra_end         stab            0,X
+       29FC 39                        rts
                       
                       *=============================================
                       *Subrutina winner: Recibe por stack un 1 si
@@ -1727,48 +1731,48 @@
                       *=============================================
                       
                                       
-       29F7           winner          EQU             *
-       29F7                           %BACKUP
-       29FC 30                        tsx
-       29FD A608                      ldaa            8,x     ;recupero parametro enviado por stack
-       29FF 2708                      beq             win2
+       29FD           winner          EQU             *
+       29FD                           %BACKUP
+       2A02 30                        tsx
+       2A03 A608                      ldaa            8,x     ;recupero parametro enviado por stack
+       2A05 2708                      beq             win2
                       
-       2A01           win1            EQU             *
-       2A01 CE42C2                    ldx             #string1
-       2A04 BD290E                    jsr             show
-       2A07 2006                      bra             end
+       2A07           win1            EQU             *
+       2A07 CE42BA                    ldx             #string1
+       2A0A BD2914                    jsr             show
+       2A0D 2006                      bra             end
                       
-       2A09           win2            EQU             *
-       2A09 CE42C7                    ldx             #string2
-       2A0C BD290E                    jsr             show
+       2A0F           win2            EQU             *
+       2A0F CE42BF                    ldx             #string2
+       2A12 BD2914                    jsr             show
                               
-       2A0F           end             EQU             *
-       2A0F                           %RESTORE
-       2A14 39                        rts
+       2A15           end             EQU             *
+       2A15                           %RESTORE
+       2A1A 39                        rts
                       
                       *=============================================
                       *Subrutina turn: Recibe por stack un 1 si
                       *juega el player 1 y un 0 si juega el player 2.
                       *=============================================
                       
-       2A15           turn            EQU             *
-       2A15                           %BACKUP
-       2A1A 30                        tsx
-       2A1B A608                      ldaa            8,x
-       2A1D 2708                      beq             p2_t
+       2A1B           turn            EQU             *
+       2A1B                           %BACKUP
+       2A20 30                        tsx
+       2A21 A608                      ldaa            8,x
+       2A23 2708                      beq             p2_t
                       
-       2A1F           p1_t            EQU             *
-       2A1F CE42CC                    ldx             #play1
-       2A22 BD290E                    jsr             show
-       2A25 20E8                      bra             end
+       2A25           p1_t            EQU             *
+       2A25 CE42C4                    ldx             #play1
+       2A28 BD2914                    jsr             show
+       2A2B 20E8                      bra             end
                               
-       2A27           p2_t            EQU             *
-       2A27 CE42D1                    ldx             #play2
-       2A2A BD290E                    jsr             show
+       2A2D           p2_t            EQU             *
+       2A2D CE42C9                    ldx             #play2
+       2A30 BD2914                    jsr             show
                       
-       2A2D           end_t           EQU             *
-       2A2D                           %RESTORE        
-       2A32 39                        rts
+       2A33           end_t           EQU             *
+       2A33                           %RESTORE        
+       2A38 39                        rts
                       
                       *************
                       * VARIABLES *
@@ -1805,50 +1809,52 @@
                       
                       ***ARREGLO DE BARCOS TOCADOS***
        0005           SUB             EQU             5
-       0005           SHI             EQU             5
+       0004           SHI             EQU             4
        0002           EL_SIZE         EQU             2
-       000F           MAX_ATT         EQU             SUB*1+SHI*2
-       001F           HITSIZE         EQU             EL_SIZE*MAX_ATT+1
+       000D           MAX_ATT         EQU             SUB*1+SHI*2
+       001B           HITSIZE         EQU             EL_SIZE*MAX_ATT+1
        4284           hitlist         RMB             HITSIZE*2
                       
                       ***DISPLAY MESSAGES VARIABLES***
-       42C2 57494E31  string1         FCC     'WIN1'
-       42C6 00                        FCB     00
-       42C7 57494E32  string2         FCC     'WIN2'
-       42CB 00                        FCB     00
+       42BA 57494E31  string1         FCC     'WIN1'
+       42BE 00                        FCB     00
+       42BF 57494E32  string2         FCC     'WIN2'
+       42C3 00                        FCB     00
                       
-       42CC 2D50312D  play1           FCC     '-P1-'
-       42D0 00                        FCB     0
-       42D1 2D50322D  play2           FCC     '-P2-'
-       42D5 00                        FCB     0
+       42C4 2D50322D  play1           FCC     '-P2-'
+       42C8 00                        FCB     0
+       42C9 2D50312D  play2           FCC     '-P1-'
+       42CD 00                        FCB     0
                       
-       42D6 5355424D  subm            FCC     'SUBM'
-       42DA 00                        FCB     0
-       42DB 43415247  carg            FCC     'CARG'
-       42DF 00                        FCB     0
+       42CE 5355424D  subm            FCC     'SUBM'
+       42D2 00                        FCB     0
+       42D3 43415247  carg            FCC     'CARG'
+       42D7 00                        FCB     0
+       42D8 504C4159  play            FCC     'PLAY'
+       42DC 00                        FCB     0
                       
-       42E0           arry_pr         RMB             N_PR*SA_SIZE
-       43A8           arry_aux        RMB             N_AUX*SA_SIZE
+       42DD           arry_pr         RMB             N_PR*SA_SIZE
+       43A5           arry_aux        RMB             N_AUX*SA_SIZE
                       
-       43B0 53554231  msg_sub         FCC             'SUB1'
-       43B4 00                        FCB             0
-       43B5 53554232                  FCC             'SUB2'
-       43B9 00                        FCB             0
-       43BA 53554233                  FCC             'SUB3'
-       43BE 00                        FCB             0
-       43BF 53554234                  FCC             'SUB4'
-       43C3 00                        FCB             0
-       43C4 53554235                  FCC             'SUB5'
-       43C8 00                        FCB             0
+       43AD 53554231  msg_sub         FCC             'SUB1'
+       43B1 00                        FCB             0
+       43B2 53554232                  FCC             'SUB2'
+       43B6 00                        FCB             0
+       43B7 53554233                  FCC             'SUB3'
+       43BB 00                        FCB             0
+       43BC 53554234                  FCC             'SUB4'
+       43C0 00                        FCB             0
+       43C1 53554235                  FCC             'SUB5'
+       43C5 00                        FCB             0
                       
-       43C9 43415231  msg_shi         FCC             'CAR1'
-       43CD 00                        FCB             0       
-       43CE 43415232                  FCC             'CAR2'
-       43D2 00                        FCB             0       
-       43D3 43415233                  FCC             'CAR3'
-       43D7 00                        FCB             0
-       43D8 43415234                  FCC             'CAR4'
-       43DC 00                        FCB             0
+       43C6 43415231  msg_shi         FCC             'CAR1'
+       43CA 00                        FCB             0       
+       43CB 43415232                  FCC             'CAR2'
+       43CF 00                        FCB             0       
+       43D0 43415233                  FCC             'CAR3'
+       43D4 00                        FCB             0
+       43D5 43415234                  FCC             'CAR4'
+       43D9 00                        FCB             0
                       
                       ***MATRICES DE TABLERO DE CADA JUGADOR***
        5000                           ORG             $5000
@@ -1896,6 +1902,6 @@
                                       
        5F24                           END
      Errors:  None         ###########
-     ytes:   2830         # main_bn #
-     RC:     088D         ###########
+     ytes:   2841         # main_bn #
+     RC:     181C         ###########
  
